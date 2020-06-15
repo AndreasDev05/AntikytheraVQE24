@@ -33,6 +33,8 @@ void InitializePins(void)
     BUTTON_OUT   = 0x0FF;    // all Pins of Port 1 with pull up
     DISPLAY_DIR  = 0xFF;     // configure P2.x as output
     DISPLAY2_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC;
+
+    VOLTMETER_SEL = U_BAT | U_TEMP | U_LIGTH;
 }
 
 void Initialize_UCS_and_Crystals(void)

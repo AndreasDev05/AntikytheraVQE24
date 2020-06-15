@@ -151,7 +151,7 @@ void StartADCmeasurements(enum ADC_mesure_typ what_mesure);
 void ADC_schedula(enum ADC_Work ADC_work);
 
 // VARIABLE
-
+/* The timer (32kHz) give a 1sec event */
 #define     TIME_PERIOD_SEC     0x03FFF
 /* Interval zum abfragen der Schalter 0.5ms */
 #define     TIME_PERIOD_300ms   0x01555
