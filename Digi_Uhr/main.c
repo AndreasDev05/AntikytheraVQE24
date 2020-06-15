@@ -57,13 +57,13 @@ int main(void)
     RTCSEC = 0x022; // starts on sec 22
     RTCMIN = 0x022; // starts on sec 22
 
-// Initialize ADC12 for temp.
-
+// Initialize ADC12
     InitializeADC12();
-// Initialize PortPins
 
+// Initialize PortPins
     InitializePins();
 
+// Initialize Timer A0 & A1
     InitializeTimerA();
 
 // main loop
@@ -75,7 +75,7 @@ int main(void)
             if (is_sec != 0)
             {
                 is_sec--;
-                StartADCmeasurements(measurement_temp_cpu);
+                StartADCmeasurements(measurement_bright);
             }
             if (is_300ms != 0)
             {
