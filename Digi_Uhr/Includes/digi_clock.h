@@ -70,9 +70,9 @@
 
 // ADC
 
-#define CALADC12_15V_30C  *((unsigned int *)0x1A1A)   // Temperature Sensor Calibration-30 C
+#define CALADC12_15V_30C  *((uint16_t *)0x1A1A)   // Temperature Sensor Calibration-30 C
                                                       //See device datasheet for TLV table memory mapping
-#define CALADC12_15V_85C  *((unsigned int *)0x1A1C)   // Temperature Sensor Calibration-85 C
+#define CALADC12_15V_85C  *((uint16_t *)0x1A1C)   // Temperature Sensor Calibration-85 C
 
 // TYPEDEF & STRUCTs
 
@@ -115,6 +115,8 @@ enum ADC_mesure_typ
 
 enum ADC_Work
 {
+    status_it_is_nothing = 0,
+    status_adc_ready,
     measure_batt_f_contr,
     measure_batt_f_disp,
     measure_bright_f_contr,
@@ -138,17 +140,17 @@ void InitializeADC12(void);
 // Generates the display output
 void GenrateDispOut(void);
 /* Translate a integer to BCD */
-void Int2str_m(unsigned int number_int, unsigned char *disp_local);
+void Int2str_m(uint16_t number_int, uint8_t *disp_local);
 /* Translate a char to BCD */
-void Char2str_m(unsigned char number_char, unsigned char *disp_local);
+void Char2str_m(uint8_t number_char, uint8_t *disp_local);
 /* Translate numbers up to 99 into BCD for the first and last double digits*/
-void Char2str_d(unsigned char number_char, unsigned char *disp_local, bool first_digits);
+void Char2str_d(uint8_t number_char, uint8_t *disp_local, bool first_digits);
 
 // Workfunctions
 // for ADC
 void StartADCmeasurements(enum ADC_mesure_typ what_mesure);
 
-void ADC_schedula(enum ADC_Work ADC_work);
+void ADC_scheduler(enum ADC_Work ADC_work);
 
 // VARIABLE
 /* The timer (32kHz) give a 1sec event */

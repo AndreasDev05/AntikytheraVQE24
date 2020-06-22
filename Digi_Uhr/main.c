@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdint.h>
 #include <string.h>
 #include <msp430.h>
 #include <msp430f5529.h>
@@ -9,34 +10,35 @@
 
 // Variablen in den Interruptfkt. -----
     volatile bool is_pwr_good = true;
-    volatile unsigned char is_sec,is_msec,is_msec2, is_300ms = 0;
+    volatile uint8_t is_sec,is_msec,is_msec2, is_300ms = 0;
 
     // Which value will be displayed
-    volatile unsigned char eve_condition = view_temp_cpu;
+    volatile uint8_t eve_condition = view_temp_cpu;
 
 // Variables for display management
     // to fast find the pin-quartet on display-port
     unsigned const int disp_pos[2] = {0x2010,0x8040};
     // display-memory position and BCD-number
-    volatile unsigned char disp_out[4] = {0,1,2,4};
+    volatile uint8_t disp_out[4] = {0,1,2,4};
     // display-memory decimal point
-    volatile unsigned char disp_point;
+    volatile uint8_t disp_point;
     // for fast overlay-functions on the display-memory
-    volatile unsigned int  *disp_out_int = &disp_out;
+    volatile uint16_t  *disp_out_int = &disp_out;
     // to reduce flicker save the display in this memory
-    volatile unsigned char disp_out_buf[4];
-    volatile unsigned int  *disp_out_buf_int = &disp_out_buf;
+    volatile uint8_t disp_out_buf[4];
+    volatile uint16_t  *disp_out_buf_int = &disp_out_buf;
     // pointer to the active display-memory
-    volatile unsigned char *disp_out_point = disp_out;
-    volatile unsigned char disp_count = 0;
+    volatile uint8_t *disp_out_point = disp_out;
+    volatile uint8_t disp_count = 0;
     // the brightness of the display: it is recommended to use values between 10 and "TIME_PERIOD_DIGT"-10.
-    volatile unsigned int  disp_brightness = 10;  // brightness
+    volatile uint16_t  disp_brightness = 10;  // brightness
 
 // Variables for ADC12
-    volatile unsigned int temp_raw[8];
-    volatile unsigned char temp_t_count = 8;
-    bool temp_s_ready;
-    unsigned int temp_s_sum;
+volatile uint16_t adc_out_raw[8];
+uint16_t adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
+        adc_out_batt_f_disp, adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
+bool temp_s_ready;
+uint16_t temp_s_sum;
 
 /**
  * main.c
@@ -44,8 +46,8 @@
 int main(void)
 {
 
-    volatile unsigned int i;        // volatile to prevent optimization
-    volatile unsigned char temp_byte = 0;
+    volatile uint16_t i;        // volatile to prevent optimization
+    volatile uint8_t temp_byte = 0;
 
 //////////// Initialize CPU function
     InitializeCPU();
@@ -93,7 +95,7 @@ int main(void)
                 temp_s_sum = 0;
                 for (i = 8; i > 0; i--)
                 {
-                    temp_s_sum += temp_raw[i - 1];
+                    temp_s_sum += adc_out_raw[i - 1];
                 }
                 temp_s_sum >>= 3;
             }

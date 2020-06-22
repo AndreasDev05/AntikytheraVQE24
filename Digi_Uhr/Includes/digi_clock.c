@@ -5,21 +5,22 @@
  *      Author: andi
  */
 #include <stdbool.h>
+#include <stdint.h>
 #include <msp430.h>
 #include <msp430f5529.h>
 #include "digi_clock.h"
 
-extern volatile unsigned char disp_out[4];
-extern unsigned const int disp_pos[2];
-extern unsigned char disp_point;
-extern volatile unsigned char *disp_out_point;
-extern volatile unsigned int  *disp_out_int;
-extern volatile unsigned char disp_out_buf[4];
-extern volatile unsigned int  *disp_out_buf_int;
+extern volatile uint8_t disp_out[4];
+extern const uint16_t disp_pos[2];
+extern uint8_t disp_point;
+extern volatile uint8_t *disp_out_point;
+extern volatile uint16_t  *disp_out_int;
+extern volatile uint8_t disp_out_buf[4];
+extern volatile uint16_t  *disp_out_buf_int;
 
-extern unsigned int temp_s_sum;
+extern uint16_t temp_s_sum;
 
-extern volatile unsigned char eve_condition;
+extern volatile uint8_t eve_condition;
 
 void InitializeCPU(void)
 {
@@ -66,7 +67,7 @@ void Initialize_UCS_and_Crystals(void)
 
 bool InitializeXT2(bool osci_on)           // the 4MHz-crystal for the mainclock
 {
-    volatile unsigned int i;               // volatile to prevent optimization
+    volatile uint16_t i;               // volatile to prevent optimization
     unsigned fault_count = 0;
 
     if (osci_on) {
@@ -167,6 +168,83 @@ void StartADCmeasurements(enum ADC_mesure_typ what_mesure)
     ADC12CTL0 |= ADC12SC;
 }
 
+void ADC_scheduler(enum ADC_Work ADC_work)
+{
+    // with this function it is possible to control 4 ADC-task
+    static uint16_t presentADCtask_point = 0;
+    uint8_t adc_i;
+    static enum ADC_Work _ADCtask[4] = { status_it_is_nothing,
+                                         status_it_is_nothing,
+                                         status_it_is_nothing,
+                                         status_it_is_nothing };
+    if (ADC_work != status_adc_ready)
+    {
+        if (_ADCtask[presentADCtask_point] == status_it_is_nothing) // first round
+        {
+            _ADCtask[presentADCtask_point] = ADC_work;
+            switch (_ADCtask[presentADCtask_point])
+            {
+            case measure_bright_f_disp:
+                StartADCmeasurements(measurement_bright);
+                break;
+            case measure_batt_f_contr:
+                StartADCmeasurements(measurement_batt);
+                break;
+            case measure_batt_f_disp:
+                StartADCmeasurements(measurement_batt);
+                break;
+            case measure_bright_f_contr:
+                StartADCmeasurements(measurement_bright);
+                break;
+            case meeasur_temp_cpu_f_disp:
+                StartADCmeasurements(measurement_temp_cpu);
+                break;
+            case meeasur_temp_out_f_disp:
+                StartADCmeasurements(measurement_temp_out);
+                break;
+            }
+        }
+        else    // (_ADCtask[presentADCtask_point] == status_it_is_nothing)
+        {
+            for (adc_i = 1; adc_i < 4; adc_i++) // search the next free register; if more measurements, forget it ;-)
+            {
+                if (_ADCtask[(presentADCtask_point + 1) & 3]
+                        == status_it_is_nothing)
+                {
+                    _ADCtask[(presentADCtask_point + 1) & 3] = ADC_work;
+                    adc_i = 4;  // stop the search
+                }
+            }
+        }
+    }
+    else    // (ADC_work != status_adc_ready)
+    {
+        switch (_ADCtask[presentADCtask_point])
+        {
+        case measure_bright_f_disp:
+            StartADCmeasurements(measurement_bright);
+            break;
+        case measure_batt_f_contr:
+            StartADCmeasurements(measurement_batt);
+            break;
+        case measure_batt_f_disp:
+            StartADCmeasurements(measurement_batt);
+            break;
+        case measure_bright_f_contr:
+            StartADCmeasurements(measurement_bright);
+            break;
+        case meeasur_temp_cpu_f_disp:
+            StartADCmeasurements(measurement_temp_cpu);
+            break;
+        case meeasur_temp_out_f_disp:
+            StartADCmeasurements(measurement_temp_out);
+            break;
+        }
+        presentADCtask_point++;
+        presentADCtask_point &= 3;
+    }
+}
+
 void GenrateDispOut(void)
 {
 /*    if ((my_display_flag.light_blink)&((time_ary[e_sec]& 1) != 0 ))
@@ -235,9 +313,9 @@ void GenrateDispOut(void)
 //    }
 }
 
-void Int2str_m(unsigned int number_int, unsigned char *disp_local)
+void Int2str_m(uint16_t number_int, uint8_t *disp_local)
 {
-    unsigned int tempInt;
+    uint16_t tempInt;
 
     if (number_int > 999)
     {
@@ -265,9 +343,9 @@ void Int2str_m(unsigned int number_int, unsigned char *disp_local)
     }
 }
 
-void Char2str_m(unsigned char number_char, unsigned char *disp_local)
+void Char2str_m(uint8_t number_char, uint8_t *disp_local)
 {
-    unsigned char tempChar;
+    uint8_t tempChar;
 
     *(disp_out + 3) = 0; // The thousand digit is always 0 anyway.
 
@@ -290,7 +368,7 @@ void Char2str_m(unsigned char number_char, unsigned char *disp_local)
     }
 }
 
-void Char2str_d(unsigned char number_char, unsigned char *disp_local, bool first_digits)
+void Char2str_d(uint8_t number_char, uint8_t *disp_local, bool first_digits)
 {
     if (first_digits)
     {

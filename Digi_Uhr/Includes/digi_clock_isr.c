@@ -6,28 +6,29 @@
  */
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <msp430.h>
 #include <msp430f5529.h>
 #include "digi_clock.h"
 #include "digi_clock_isr.h"
 
 // Variablen in den Interruptfkt. -----
-    extern volatile unsigned char is_sec,is_msec,is_msec2,is_300ms;
+    extern volatile uint8_t is_sec,is_msec,is_msec2,is_300ms;
 // Variables for display management
-    extern volatile unsigned const int disp_pos[4];
-    extern volatile unsigned char disp_out[4];
-    extern volatile unsigned int  *disp_out_int;
+    extern volatile const uint16_t disp_pos[4];
+    extern volatile uint8_t disp_out[4];
+    extern volatile uint16_t  *disp_out_int;
     // to reduce flicker save the display in this memory
-    extern volatile unsigned char disp_out_buf[4];
+    extern volatile uint8_t disp_out_buf[4];
     // pointer to the active displaymemory
-    extern volatile unsigned char *disp_out_point;
-    extern volatile unsigned char disp_count;
+    extern volatile uint8_t *disp_out_point;
+    extern volatile uint8_t disp_count;
     // the brightness of the display: it is recommended to use values between 10 and "TIME_PERIOD_DIGT"-10.
-    extern volatile unsigned int  disp_brightness;  // brightness
+    extern volatile uint16_t  disp_brightness;  // brightness
 
 // Variables for ADC12
-    extern volatile unsigned int temp_raw[8];
-    extern volatile unsigned char temp_t_count;
+    extern volatile uint16_t adc_out_raw[8];
+    extern volatile uint8_t temp_t_count;
     extern bool temp_s_ready;    // ready
 
 #pragma vector=TIMER0_A0_VECTOR
@@ -114,17 +115,18 @@ __interrupt void TIMER1_A1_ISR(void)
 #pragma vector=ADC12_VECTOR
 __interrupt void ADC12ISR (void)
 {
+  static uint8_t adc_m_count = 8;
   switch(__even_in_range(ADC12IV,34))
   {
   case  0: break;                           // Vector  0:  No interrupt
   case  2: break;                           // Vector  2:  ADC overflow
   case  4: break;                           // Vector  4:  ADC timing overflow
   case  6:                                  // Vector  6:  ADC12IFG0
-    temp_t_count--;
-    temp_raw[temp_t_count] = ADC12MEM0;                   // Move results, IFG is cleared
-    if (temp_t_count == 0)
+    adc_m_count--;
+    adc_out_raw[adc_m_count] = ADC12MEM0;                   // Move results, IFG is cleared
+    if (adc_m_count == 0)
     {
-        temp_t_count = 8;
+        adc_m_count = 8;
         ADC12CTL1 &=  ~(0x06);       //
         ADC12CTL0 &=  ~ADC12SC;            // switch ADC-process off
         ADC12CTL0 &=  ~ADC12ENC;
