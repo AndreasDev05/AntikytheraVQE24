@@ -219,6 +219,8 @@ void ADC_scheduler(enum ADC_Work ADC_work)
     }
     else    // (ADC_work != status_adc_ready)
     {
+//        adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
+//                adc_out_batt_f_disp, adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp
         switch (_ADCtask[presentADCtask_point])
         {
         case measure_bright_f_disp:

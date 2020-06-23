@@ -37,7 +37,7 @@
 volatile uint16_t adc_out_raw[8];
 uint16_t adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
         adc_out_batt_f_disp, adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
-bool temp_s_ready;
+volatile bool adc_conv_ready;
 uint16_t temp_s_sum;
 
 /**
@@ -89,9 +89,9 @@ int main(void)
             }
 //            for (i = 4000; i > 0; i--)
                 ;     // delay
-            if (temp_s_ready)
+            if (adc_conv_ready)
             {
-                temp_s_ready = false;
+                adc_conv_ready = false;
                 temp_s_sum = 0;
                 for (i = 8; i > 0; i--)
                 {

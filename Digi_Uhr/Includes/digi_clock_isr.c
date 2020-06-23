@@ -29,7 +29,7 @@
 // Variables for ADC12
     extern volatile uint16_t adc_out_raw[8];
     extern volatile uint8_t temp_t_count;
-    extern bool temp_s_ready;    // ready
+    extern bool adc_conv_ready;    // ready
 
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void TIMER0_A0_ISR(void)
@@ -130,7 +130,7 @@ __interrupt void ADC12ISR (void)
         ADC12CTL1 &=  ~(0x06);       //
         ADC12CTL0 &=  ~ADC12SC;            // switch ADC-process off
         ADC12CTL0 &=  ~ADC12ENC;
-        temp_s_ready = true;
+        adc_conv_ready = true;
     }
     break;
   case  8: break;                           // Vector  8:  ADC12IFG1
