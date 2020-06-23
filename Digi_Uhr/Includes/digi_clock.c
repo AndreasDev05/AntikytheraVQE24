@@ -18,8 +18,6 @@ extern volatile uint16_t  *disp_out_int;
 extern volatile uint8_t disp_out_buf[4];
 extern volatile uint16_t  *disp_out_buf_int;
 
-extern uint16_t temp_s_sum;
-
 extern volatile uint8_t eve_condition;
 
 void InitializeCPU(void)
@@ -172,11 +170,18 @@ void ADC_scheduler(enum ADC_Work ADC_work)
 {
     // with this function it is possible to control 4 ADC-task
     static uint16_t presentADCtask_point = 0;
-    uint8_t adc_i;
+    uint8_t  adc_i;
+    uint16_t adc_sum_raw;
     static enum ADC_Work _ADCtask[4] = { status_it_is_nothing,
                                          status_it_is_nothing,
                                          status_it_is_nothing,
                                          status_it_is_nothing };
+    extern volatile uint16_t adc_out_raw[8];
+    extern volatile bool adc_conv_ready;
+    extern uint16_t adc_out_bright_contr, adc_out_bright_f_disp,
+            adc_out_batt_f_contr, adc_out_batt_f_disp, adc_out_temp_cpu_f_disp,
+            adc_out_temp_out_f_disp;
+
     if (ADC_work != status_adc_ready)
     {
         if (_ADCtask[presentADCtask_point] == status_it_is_nothing) // first round
@@ -196,10 +201,10 @@ void ADC_scheduler(enum ADC_Work ADC_work)
             case measure_bright_f_contr:
                 StartADCmeasurements(measurement_bright);
                 break;
-            case meeasur_temp_cpu_f_disp:
+            case measure_temp_cpu_f_disp:
                 StartADCmeasurements(measurement_temp_cpu);
                 break;
-            case meeasur_temp_out_f_disp:
+            case measure_temp_out_f_disp:
                 StartADCmeasurements(measurement_temp_out);
                 break;
             }
@@ -219,27 +224,39 @@ void ADC_scheduler(enum ADC_Work ADC_work)
     }
     else    // (ADC_work != status_adc_ready)
     {
-//        adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
-//                adc_out_batt_f_disp, adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp
+        adc_conv_ready = false;
+        adc_sum_raw = 0;
+        for (adc_i = 8; adc_i > 0; adc_i--)
+        {
+            adc_sum_raw += adc_out_raw[adc_i - 1];
+        }
+        if (adc_sum_raw & 4) adc_sum_raw += 8; // a simple rounding, because no floating point operation was implemented
+        adc_sum_raw >>= 3;  // eql. div 8
         switch (_ADCtask[presentADCtask_point])
         {
-        case measure_bright_f_disp:
-            StartADCmeasurements(measurement_bright);
+        case measure_bright_f_contr:
+            adc_out_bright_contr = adc_sum_raw;
+            adc_out_ready |= BRIGHT_F_CONTR_READY;
             break;
         case measure_batt_f_contr:
-            StartADCmeasurements(measurement_batt);
+            adc_out_batt_f_contr = adc_sum_raw;
+            adc_out_ready |= BATT_F_CONTR_READY;
+            break;
+        case measure_bright_f_disp:
+            adc_out_bright_f_disp = adc_sum_raw;
+            adc_out_ready |= BRIGHT_F_DISP_READY;
             break;
         case measure_batt_f_disp:
-            StartADCmeasurements(measurement_batt);
+            adc_out_batt_f_disp = adc_sum_raw;
+            adc_out_ready |= BATT_F_DISP_READY;
             break;
-        case measure_bright_f_contr:
-            StartADCmeasurements(measurement_bright);
+        case measure_temp_cpu_f_disp:
+            adc_out_temp_cpu_f_disp = adc_sum_raw;
+            adc_out_ready |= TEMP_CPU_F_DISP_READY;
             break;
-        case meeasur_temp_cpu_f_disp:
-            StartADCmeasurements(measurement_temp_cpu);
-            break;
-        case meeasur_temp_out_f_disp:
-            StartADCmeasurements(measurement_temp_out);
+        case measure_temp_out_f_disp:
+            adc_out_temp_out_f_disp = adc_sum_raw;
+            adc_out_ready |= TEMP_OUT_F_DISP_READY;
             break;
         }
         presentADCtask_point++;
@@ -301,7 +318,7 @@ void GenrateDispOut(void)
         disp_out[0] = RTCYEARH >> 4;
         break;
     case view_temp_cpu:
-        Int2str_m(temp_s_sum, &disp_out); // look SLAU208Q site 83
+//        Int2str_m(adc_sum_raw, &disp_out); // look SLAU208Q site 83
         break;
     }
     *disp_out_int &= 0x0F0F;

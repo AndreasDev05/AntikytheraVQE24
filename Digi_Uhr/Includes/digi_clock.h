@@ -121,9 +121,16 @@ enum ADC_Work
     measure_batt_f_disp,
     measure_bright_f_contr,
     measure_bright_f_disp,
-    meeasur_temp_cpu_f_disp,
-    meeasur_temp_out_f_disp,
+    measure_temp_cpu_f_disp,
+    measure_temp_out_f_disp,
 };
+
+#define     BATT_F_CONTR_READY    BIT0
+#define     BATT_F_DISP_READY     BIT1
+#define     BRIGHT_F_CONTR_READY  BIT2
+#define     BRIGHT_F_DISP_READY   BIT3
+#define     TEMP_CPU_F_DISP_READY BIT4
+#define     TEMP_OUT_F_DISP_READY BIT5
 
 // FUNCTIONS
 /* Initialize CPU and basic variables */

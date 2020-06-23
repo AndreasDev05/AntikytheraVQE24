@@ -38,6 +38,7 @@ volatile uint16_t adc_out_raw[8];
 uint16_t adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
         adc_out_batt_f_disp, adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
 volatile bool adc_conv_ready;
+volatile uint8_t adc_out_ready = 0;  // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
 uint16_t temp_s_sum;
 
 /**
