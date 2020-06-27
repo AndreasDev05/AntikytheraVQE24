@@ -18,8 +18,6 @@ extern volatile uint16_t  *disp_out_int;
 extern volatile uint8_t disp_out_buf[4];
 extern volatile uint16_t  *disp_out_buf_int;
 
-extern volatile uint8_t eve_condition;
-
 void InitializeCPU(void)
 {
     WDTCTL = WDTPW | WDTHOLD;       // stop watchdog timer
@@ -170,7 +168,7 @@ void ADC_scheduler(enum ADC_Work ADC_work)
 {
     // with this function it is possible to control 4 ADC-task
     static uint16_t presentADCtask_point = 0;
-    uint8_t  adc_i;
+    uint8_t adc_i;
     uint16_t adc_sum_raw;
     static enum ADC_Work _ADCtask[4] = { status_it_is_nothing,
                                          status_it_is_nothing,
@@ -178,9 +176,10 @@ void ADC_scheduler(enum ADC_Work ADC_work)
                                          status_it_is_nothing };
     extern volatile uint16_t adc_out_raw[8];
     extern volatile bool adc_conv_ready;
+    extern uint8_t adc_out_ready;
     extern uint16_t adc_out_bright_contr, adc_out_bright_f_disp,
-            adc_out_batt_f_contr, adc_out_batt_f_disp, adc_out_temp_cpu_f_disp,
-            adc_out_temp_out_f_disp;
+                    adc_out_batt_f_contr, adc_out_batt_f_disp,
+                    adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
 
     if (ADC_work != status_adc_ready)
     {
@@ -230,7 +229,8 @@ void ADC_scheduler(enum ADC_Work ADC_work)
         {
             adc_sum_raw += adc_out_raw[adc_i - 1];
         }
-        if (adc_sum_raw & 4) adc_sum_raw += 8; // a simple rounding, because no floating point operation was implemented
+        if (adc_sum_raw & 4)
+            adc_sum_raw += 8; // a simple rounding, because no floating point operation was implemented
         adc_sum_raw >>= 3;  // eql. div 8
         switch (_ADCtask[presentADCtask_point])
         {
@@ -259,13 +259,43 @@ void ADC_scheduler(enum ADC_Work ADC_work)
             adc_out_ready |= TEMP_OUT_F_DISP_READY;
             break;
         }
+        _ADCtask[presentADCtask_point] = status_it_is_nothing;
         presentADCtask_point++;
         presentADCtask_point &= 3;
+        if (_ADCtask[presentADCtask_point] == status_it_is_nothing) // first round
+        {
+//            _ADCtask[presentADCtask_point] = ADC_work;
+            switch (_ADCtask[presentADCtask_point])
+            {
+            case measure_bright_f_disp:
+                StartADCmeasurements(measurement_bright);
+                break;
+            case measure_batt_f_contr:
+                StartADCmeasurements(measurement_batt);
+                break;
+            case measure_batt_f_disp:
+                StartADCmeasurements(measurement_batt);
+                break;
+            case measure_bright_f_contr:
+                StartADCmeasurements(measurement_bright);
+                break;
+            case measure_temp_cpu_f_disp:
+                StartADCmeasurements(measurement_temp_cpu);
+                break;
+            case measure_temp_out_f_disp:
+                StartADCmeasurements(measurement_temp_out);
+                break;
+            }
+        }
     }
 }
 
-void GenrateDispOut(void)
+void GenerateDispOut(void)
 {
+    extern volatile uint8_t eve_condition;
+    extern uint16_t adc_out_bright_contr, adc_out_bright_f_disp,
+                    adc_out_batt_f_contr, adc_out_batt_f_disp,
+                    adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
 /*    if ((my_display_flag.light_blink)&((time_ary[e_sec]& 1) != 0 ))
     {
         disp_out[3] = 0xF;
@@ -318,7 +348,7 @@ void GenrateDispOut(void)
         disp_out[0] = RTCYEARH >> 4;
         break;
     case view_temp_cpu:
-//        Int2str_m(adc_sum_raw, &disp_out); // look SLAU208Q site 83
+        Int2str_m(adc_out_bright_contr, &disp_out); // look SLAU208Q site 83
         break;
     }
     *disp_out_int &= 0x0F0F;
@@ -332,7 +362,7 @@ void GenrateDispOut(void)
 //    }
 }
 
-void Int2str_m(uint16_t number_int, uint8_t *disp_local)
+void Int2str_m(uint16_t number_int,volatile uint8_t *disp_local)
 {
     uint16_t tempInt;
 

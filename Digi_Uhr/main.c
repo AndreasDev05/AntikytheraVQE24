@@ -38,7 +38,7 @@ volatile uint16_t adc_out_raw[8];
 uint16_t adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
         adc_out_batt_f_disp, adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
 volatile bool adc_conv_ready;
-volatile uint8_t adc_out_ready = 0;  // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
+uint8_t adc_out_ready = 0;  // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
 uint16_t temp_s_sum;
 
 /**
@@ -78,7 +78,8 @@ int main(void)
             if (is_sec != 0)
             {
                 is_sec--;
-                StartADCmeasurements(measurement_bright);
+                ADC_scheduler(measure_bright_f_contr);
+                //                StartADCmeasurements(measurement_bright);
             }
             if (is_300ms != 0)
             {
@@ -86,19 +87,24 @@ int main(void)
                 disp_brightness += 10;
                 if (disp_brightness > TIME_PERIOD_DIGT - 10)
                     disp_brightness = 5;
-                GenrateDispOut();
+                if (adc_out_ready & BRIGHT_F_CONTR_READY)
+                {
+                    GenerateDispOut();
+                    adc_out_ready &= ~BRIGHT_F_CONTR_READY;
+                }
             }
 //            for (i = 4000; i > 0; i--)
-                ;     // delay
+            ;     // delay
             if (adc_conv_ready)
             {
-                adc_conv_ready = false;
-                temp_s_sum = 0;
-                for (i = 8; i > 0; i--)
-                {
-                    temp_s_sum += adc_out_raw[i - 1];
-                }
-                temp_s_sum >>= 3;
+                ADC_scheduler(status_adc_ready);
+                /*                adc_conv_ready = false;
+                 temp_s_sum = 0;
+                 for (i = 8; i > 0; i--)
+                 {
+                 temp_s_sum += adc_out_raw[i - 1];
+                 }
+                 temp_s_sum >>= 3; */
             }
 //          DISPLAY2_OUT ^= LED_SEC;              // toggle P4.0
             __no_operation();                         // For debugger
