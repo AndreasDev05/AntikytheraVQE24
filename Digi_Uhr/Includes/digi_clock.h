@@ -147,7 +147,7 @@ void InitializeADC12(void);
 // Generates the display output
 void GenerateDispOut(void);
 /* Translate a integer to BCD */
-void Int2str_m(int32_t number_int,volatile uint8_t *disp_local);
+void Int2str_m(int16_t number_int,volatile uint8_t *disp_local);
 /* Translate a char to BCD */
 void Char2str_m(uint8_t number_char, uint8_t *disp_local);
 /* Translate numbers up to 99 into BCD for the first and last double digits*/

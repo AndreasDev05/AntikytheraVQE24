@@ -377,11 +377,11 @@ void GenerateDispOut(void)
 //    }
 }
 
-void Int2str_m(int32_t number_int,volatile uint8_t *disp_local)
+void Int2str_m(int16_t number_int,volatile uint8_t *disp_local)
 // convert a integer with 9999 to BCD / char[4] array
 // !! this function is for MCUs and has no ERRORcontrol !!
 {
-    int32_t tempInt;
+    int16_t tempInt;
 
     if (number_int < 0)
     {

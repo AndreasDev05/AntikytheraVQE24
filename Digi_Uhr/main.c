@@ -36,13 +36,13 @@
 // Variables for ADC12
 volatile uint16_t adc_out_raw[8];
 uint16_t adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
-        adc_out_batt_f_disp, adc_out_temp_cpu_f_disp_raw,
-        adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
+        adc_out_batt_f_disp, adc_out_temp_cpu_f_disp_raw;
+int16_t adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
 volatile bool adc_conv_ready;
 uint8_t  adc_out_ready = 0;  // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
 uint16_t temp_s_sum;
 int32_t  temp_cpu_coefficient; // precalculated factor for CPU-temperature measurement
-volatile int32_t calcu_extension,calcu_extension1;
+int32_t calcu_extension;
 
 /**
  * main.c
@@ -93,8 +93,8 @@ int main(void)
 //                    i = CALADC12_15V_30C;
                     __no_operation();
                     calcu_extension = (int32_t)((int32_t)adc_out_temp_cpu_f_disp_raw - (int32_t)CALADC12_15V_30C);
-                    calcu_extension1 = calcu_extension * temp_cpu_coefficient;
-                    calcu_extension = calcu_extension1 + 30000;
+                    calcu_extension *= temp_cpu_coefficient;
+                    calcu_extension += 30000;
                     calcu_extension /= 100;
                     adc_out_temp_cpu_f_disp = calcu_extension;
 /*                            (uint16_t) (((int32_t) () * temp_cpu_coefficient
