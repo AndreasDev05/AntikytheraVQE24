@@ -42,9 +42,9 @@
 #define     TXD                   BIT3      // TXD on P3.3
 #define     RXD                   BIT4      // RXD on P3.4
 /*
-#define     DISPLAY2_OUT          P4OUT
-#define     DISPLAY2_DIR          P4DIR
-#define     DISPLAY2_IN           P4IN
+#define     SIGNALS_OUT          P4OUT
+#define     SIGNALS_DIR          P4DIR
+#define     SIGNALS_IN           P4IN
 #define     DARK                  BIT0      // Dunkeltastung
 #define     AL1                   BIT1      // Alarm Piezo
 #define     LED_SEC               BIT2      // LED Sekunden
@@ -60,9 +60,9 @@
 #define     U_TEMP                BIT1
 #define     U_LIGTH               BIT2
 
-#define     DISPLAY2_OUT          P7OUT
-#define     DISPLAY2_DIR          P7DIR
-#define     DISPLAY2_IN           P7IN
+#define     SIGNALS_OUT           P7OUT
+#define     SIGNALS_DIR           P7DIR
+#define     SIGNALS_IN            P7IN
 #define     DARK                  BIT0      // Dunkeltastung
 #define     AL1                   BIT1      // Alarm Piezo
 #define     LED_OSCI_FAULT        BIT2      // LED Oszillator 4MHz schwingt nicht
@@ -76,7 +76,7 @@
 
 // TYPEDEF & STRUCTs
 
-// Variablen die "globale" Zus‰nde steuern ----
+// Variablen die "globale" Zus√§nde steuern ----
 // variables that control "global" states
 
 enum
@@ -147,7 +147,7 @@ void InitializeADC12(void);
 // Generates the display output
 void GenerateDispOut(void);
 /* Translate a integer to BCD */
-void Int2str_m(uint16_t number_int,volatile uint8_t *disp_local);
+void Int2str_m(int32_t number_int,volatile uint8_t *disp_local);
 /* Translate a char to BCD */
 void Char2str_m(uint8_t number_char, uint8_t *disp_local);
 /* Translate numbers up to 99 into BCD for the first and last double digits*/
@@ -162,6 +162,8 @@ void ADC_scheduler(enum ADC_Work ADC_work);
 // VARIABLE
 /* The timer (32kHz) give a 1sec event */
 #define     TIME_PERIOD_SEC     0x03FFF
+/* Interval zum abfragen des ADC  100ms Ergebnises 50000 */
+#define     TIME_PERIOD_100ms   0x0C350
 /* Interval zum abfragen der Schalter 0.5ms */
 #define     TIME_PERIOD_300ms   0x01555
 /* Interval zum Refresh der Anzeige 333ms */

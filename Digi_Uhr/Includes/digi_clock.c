@@ -17,11 +17,23 @@ extern volatile uint8_t *disp_out_point;
 extern volatile uint16_t  *disp_out_int;
 extern volatile uint8_t disp_out_buf[4];
 extern volatile uint16_t  *disp_out_buf_int;
+extern     int32_t calcu_extension,calcu_extension1;
 
 void InitializeCPU(void)
 {
+    extern int32_t temp_cpu_coefficient;
+    int32_t temp_prod;
     WDTCTL = WDTPW | WDTHOLD;       // stop watchdog timer
     __enable_interrupt();           // Enable interrupts globally
+    temp_prod = CALADC12_15V_85C - CALADC12_15V_30C;
+    temp_cpu_coefficient = (int32_t)(85000 - 30000) / temp_prod;
+    __no_operation();
+/*
+ *        85.0 - 30.0           K in mKelvin
+ * -------------------------
+ * CAL_ADC_T85 - CAL_ADC_T30
+ *
+ */
 }
 
 void InitializePins(void)
@@ -29,7 +41,7 @@ void InitializePins(void)
     BUTTON_REN   = 0x0FF;    // all Pins of Port 1 input with a resistor
     BUTTON_OUT   = 0x0FF;    // all Pins of Port 1 with pull up
     DISPLAY_DIR  = 0xFF;     // configure P2.x as output
-    DISPLAY2_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC;
+    SIGNALS_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC;
 
     VOLTMETER_SEL = U_BAT | U_TEMP | U_LIGTH;
 }
@@ -56,7 +68,7 @@ void Initialize_UCS_and_Crystals(void)
         UCSCTL4 = SELA__XT1CLK | SELS__XT2CLK | SELM__XT2CLK;    // (Sub)Masterclock == XT1
     else {
         UCSCTL4 = SELA__XT1CLK | SELS__DCOCLK | SELM__DCOCLK;    // (Sub)Masterclock == DCO
-        DISPLAY2_OUT |= LED_OSCI_FAULT;
+        SIGNALS_OUT |= LED_OSCI_FAULT;
     }
 
 }
@@ -96,15 +108,15 @@ void InitializeTimerA(void)
 
     // Configure counter 1
     TA0CCTL1 = CCIE;            // CCR1 toggle, interrupt enabled
-    TA0CCR1 = TIME_PERIOD_1;   // default for 0.5 msec
+    TA0CCR1 = TIME_PERIOD_1;       // default for 0.5 msec
 
     // Configure counter 2
     TA0CCTL2 = CCIE;            // CCR2 toggle, interrupt enabled
-    TA0CCR2 = TIME_PERIOD_2;           // default for 0.125 msec
+    TA0CCR2 = TIME_PERIOD_2;       // default for 0.125 msec
 
     // Configure counter 3
     TA0CCTL3 = CCIE;            // CCR2 toggle, interrupt enabled
-    TA0CCR3 = TIME_PERIOD_300ms;       // default for 333 msec
+    TA0CCR3 = TIME_PERIOD_300ms;   // default for 333 msec
 
     // Configure timer A0 configureregister
     TA0CTL = TASSEL__ACLK | MC__CONTINUOUS | TACLR;
@@ -116,8 +128,12 @@ void InitializeTimerA(void)
     TA1CCR0 = TIME_PERIOD_DIGT;  // default for
 
     // Configure counter 1
-    /*     TA0CCTL1 = CCIE;            // CCR1 toggle, interrupt enabled
+    /*     TA0CCTL1 = CCIE;        // CCR1 toggle, interrupt enabled
      TA0CCR1  = 10383;           // default for 0.5 msec */
+
+    // Configure counter 2
+    TA1CCTL2 = CCIE;            // CCR1 toggle, interrupt enabled
+    TA1CCR0 = TIME_PERIOD_100ms;   // default for 100 msec
 
     // Configure timer A0 configureregister
     TA1CTL = TASSEL__SMCLK | ID__8 | MC__CONTINUOUS | TACLR;
@@ -179,7 +195,7 @@ void ADC_scheduler(enum ADC_Work ADC_work)
     extern uint8_t adc_out_ready;
     extern uint16_t adc_out_bright_contr, adc_out_bright_f_disp,
                     adc_out_batt_f_contr, adc_out_batt_f_disp,
-                    adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
+                    adc_out_temp_cpu_f_disp_raw, adc_out_temp_out_f_disp;
 
     if (ADC_work != status_adc_ready)
     {
@@ -208,15 +224,14 @@ void ADC_scheduler(enum ADC_Work ADC_work)
                 break;
             }
         }
-        else    // (_ADCtask[presentADCtask_point] == status_it_is_nothing)
+        else    // (_ADCtask[presentADCtask_point] == status_it_is_nothing) searching next free memory
         {
             for (adc_i = 1; adc_i < 4; adc_i++) // search the next free register; if more measurements, forget it ;-)
             {
-                if (_ADCtask[(presentADCtask_point + 1) & 3]
-                        == status_it_is_nothing)
+                if (_ADCtask[(presentADCtask_point + adc_i) & 3] == status_it_is_nothing)
                 {
-                    _ADCtask[(presentADCtask_point + 1) & 3] = ADC_work;
-                    adc_i = 4;  // stop the search
+                    _ADCtask[(presentADCtask_point + adc_i) & 3] = ADC_work;
+                    break;  // stop the search
                 }
             }
         }
@@ -251,7 +266,7 @@ void ADC_scheduler(enum ADC_Work ADC_work)
             adc_out_ready |= BATT_F_DISP_READY;
             break;
         case measure_temp_cpu_f_disp:
-            adc_out_temp_cpu_f_disp = adc_sum_raw;
+            adc_out_temp_cpu_f_disp_raw = adc_sum_raw;
             adc_out_ready |= TEMP_CPU_F_DISP_READY;
             break;
         case measure_temp_out_f_disp:
@@ -262,9 +277,8 @@ void ADC_scheduler(enum ADC_Work ADC_work)
         _ADCtask[presentADCtask_point] = status_it_is_nothing;
         presentADCtask_point++;
         presentADCtask_point &= 3;
-        if (_ADCtask[presentADCtask_point] == status_it_is_nothing) // first round
+        if (_ADCtask[presentADCtask_point] != status_it_is_nothing)
         {
-//            _ADCtask[presentADCtask_point] = ADC_work;
             switch (_ADCtask[presentADCtask_point])
             {
             case measure_bright_f_disp:
@@ -348,7 +362,8 @@ void GenerateDispOut(void)
         disp_out[0] = RTCYEARH >> 4;
         break;
     case view_temp_cpu:
-        Int2str_m(adc_out_bright_contr, &disp_out); // look SLAU208Q site 83
+//        Int2str_m(adc_out_temp_cpu_f_disp, &disp_out);
+        Int2str_m(calcu_extension, &disp_out);
         break;
     }
     *disp_out_int &= 0x0F0F;
@@ -362,33 +377,46 @@ void GenerateDispOut(void)
 //    }
 }
 
-void Int2str_m(uint16_t number_int,volatile uint8_t *disp_local)
+void Int2str_m(int32_t number_int,volatile uint8_t *disp_local)
+// convert a integer with 9999 to BCD / char[4] array
+// !! this function is for MCUs and has no ERRORcontrol !!
 {
-    uint16_t tempInt;
+    int32_t tempInt;
 
-    if (number_int > 999)
+    if (number_int < 0)
     {
-        *(disp_local + 3) = number_int / 1000;
-        tempInt = number_int % 1000;
+        SIGNALS_OUT |= LED_OSCI_FAULT;
+        tempInt = number_int * (-1);
     }
     else
-        *(disp_out + 3) = 0;
+    {
+        SIGNALS_OUT &= ~LED_OSCI_FAULT;
+        tempInt = number_int;
+    }
+
+    if (tempInt > 999)
+    {
+        *(disp_local + 3) = tempInt / 1000;
+        tempInt = tempInt % 1000;
+    }
+    else
+        *(disp_local + 3) = 0;
     if (tempInt > 99)
     {
-        *(disp_out + 2) = tempInt / 100;
+        *(disp_local + 2) = tempInt / 100;
         tempInt %= 100;
     }
     else
-        *(disp_out + 2) = 0;
+        *(disp_local + 2) = 0;
     if (tempInt > 9)
     {
-        *(disp_out + 1) = tempInt / 10;
-        *disp_out = tempInt % 10;
+        *(disp_local + 1) = tempInt / 10;
+        *disp_local = tempInt % 10;
     }
     else
     {
-        *(disp_out + 1) = 0;
-        *disp_out = tempInt;
+        *(disp_local + 1) = 0;
+        *disp_local = tempInt;
     }
 }
 

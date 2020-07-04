@@ -13,7 +13,7 @@
 #include "digi_clock_isr.h"
 
 // Variablen in den Interruptfkt. -----
-    extern volatile uint8_t is_sec,is_msec,is_msec2,is_300ms;
+    extern volatile uint8_t is_sec,is_msec,is_msec2,is_100ms,is_300ms;
 // Variables for display management
     extern volatile const uint16_t disp_pos[4];
     extern volatile uint8_t disp_out[4];
@@ -38,7 +38,7 @@ __interrupt void TIMER0_A0_ISR(void)
     is_sec++;
     __no_operation();                         // For debugger
 
-//    DISPLAY2_OUT    ^= LED_SEC;                            // Toggle P7.3
+//    SIGNALS_OUT    ^= LED_SEC;                            // Toggle P7.3
 }
 
 #pragma vector=TIMER0_A1_VECTOR
@@ -55,7 +55,7 @@ __interrupt void TIMER0_A1_ISR(void)
     case 4:
         TA0CCR2 += TIME_PERIOD_2;                // Add Offset to CCR2
         is_msec2++;
-//               DISPLAY2_OUT ^= LED_SEC;        // Toggle P7.3
+//               SIGNALS_OUT ^= LED_SEC;        // Toggle P7.3
         break;
     case 6:
         TA0CCR3 += TIME_PERIOD_300ms;
@@ -79,7 +79,7 @@ __interrupt void TIMER0_A1_ISR(void)
 __interrupt void TIMER1_A0_ISR(void)
 {
     TA1CCR0         += TIME_PERIOD_DIGT;
-    DISPLAY2_OUT    |= LED_SEC;                            // switch P7.3 on
+    SIGNALS_OUT    |= LED_SEC;                            // switch P7.3 on
     DISPLAY_OUT = *(disp_out_point+disp_count);
 //    if (disp_count < 3) disp_count++; else disp_count = 0;
     disp_count++;
@@ -93,22 +93,31 @@ __interrupt void TIMER1_A0_ISR(void)
 #pragma vector=TIMER1_A1_VECTOR
 __interrupt void TIMER1_A1_ISR(void)
 {
-    switch(__even_in_range(TA1IV,14))
+    switch (__even_in_range(TA1IV, 14))
     {
-      case 0:  break;
-      case 2:  TA1CCTL1 &= ~CCIE;             // CCR1 interrupt disabled
-               DISPLAY2_OUT &= ~LED_SEC;      // switch P7.3 off
-               break;
-      case 4:  TA1CCR2 += TIME_PERIOD_2;      // Add Offset to CCR2
-               break;
-      case 6:  break;                         // CCR3 not used
-      case 8:  break;                         // CCR4 not used
-      case 10: break;                         // CCR5 not used
-      case 12: break;                         // Reserved not used
-      case 14:                                // overflow
-               break;
-      default: break;
-   }
+    case 0:
+        break;
+    case 2:
+        TA1CCTL1 &= ~CCIE;             // CCR1 interrupt disabled
+        SIGNALS_OUT &= ~LED_SEC;      // switch P7.3 off
+        break;
+    case 4:
+        TA1CCR2 += TIME_PERIOD_100ms;  // Add Offset to CCR3
+        is_100ms++;
+        break;
+    case 6:
+        break;                         // CCR2 not used
+    case 8:
+        break;                         // CCR4 not used
+    case 10:
+        break;                         // CCR5 not used
+    case 12:
+        break;                         // Reserved not used
+    case 14:                                // overflow
+        break;
+    default:
+        break;
+    }
 
 }
 
