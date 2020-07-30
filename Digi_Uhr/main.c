@@ -13,7 +13,7 @@
     volatile uint8_t is_sec,is_msec,is_msec2, is_100ms, is_300ms = 0;
 
     // Which value will be displayed
-    volatile uint8_t eve_condition = view_temp_cpu;
+    volatile uint8_t eve_condition = view_temp_out;
 
 // Variables for display management
     // to fast find the pin-quartet on display-port
@@ -21,7 +21,7 @@
     // display-memory position and BCD-number
     volatile uint8_t disp_out[4] = {0x10,0x21,0x42,0x84};
     // display-memory decimal point
-    volatile uint8_t disp_point;
+    volatile uint8_t disp_point = 0x2;
     // for fast overlay-functions on the display-memory
     volatile uint16_t  *disp_out_int = &disp_out;
     // to reduce flicker save the display in this memory
@@ -82,7 +82,7 @@ int main(void)
             {
                 is_sec--;
 //                ADC_scheduler(measure_bright_f_contr);
-                ADC_scheduler(measure_temp_cpu_f_disp);
+                ADC_scheduler(measure_temp_out_f_disp);
                 //                StartADCmeasurements(measurement_bright);
             }
             if (is_100ms != 0)
@@ -101,6 +101,10 @@ int main(void)
                                     + 30000) / 100); */
                     GenerateDispOut();
                     adc_out_ready &= ~TEMP_CPU_F_DISP_READY;
+                }
+                if (adc_out_ready & TEMP_OUT_F_DISP_READY)
+                {
+                    GenerateDispOut();
                 }
             }
             if (is_300ms != 0)

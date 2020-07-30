@@ -41,7 +41,7 @@ void InitializePins(void)
     BUTTON_REN   = 0x0FF;    // all Pins of Port 1 input with a resistor
     BUTTON_OUT   = 0x0FF;    // all Pins of Port 1 with pull up
     DISPLAY_DIR  = 0xFF;     // configure P2.x as output
-    SIGNALS_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC;
+    SIGNALS_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC | LED_DP;
 
     VOLTMETER_SEL = U_BAT | U_TEMP | U_LIGTH;
 }
@@ -364,6 +364,9 @@ void GenerateDispOut(void)
     case view_temp_cpu:
 //        Int2str_m(adc_out_temp_cpu_f_disp, &disp_out);
         Int2str_m(calcu_extension, &disp_out);
+        break;
+    case view_temp_out:
+        Int2str_m(adc_out_temp_out_f_disp, &disp_out);
         break;
     }
     *disp_out_int &= 0x0F0F;

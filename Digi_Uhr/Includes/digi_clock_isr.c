@@ -78,9 +78,22 @@ __interrupt void TIMER0_A1_ISR(void)
 #pragma vector=TIMER1_A0_VECTOR
 __interrupt void TIMER1_A0_ISR(void)
 {
+    extern uint8_t disp_point;
+           uint8_t temp_DP_mask;
+
     TA1CCR0         += TIME_PERIOD_DIGT;
     SIGNALS_OUT    |= LED_SEC;                            // switch P7.3 on
     DISPLAY_OUT = *(disp_out_point+disp_count);
+/*  switching decimal point */
+    temp_DP_mask = *(disp_out_point+disp_count) >> 4;
+    if (disp_point & temp_DP_mask)
+    {
+        SIGNALS_OUT |= LED_DP;
+    }
+    else
+    {
+        SIGNALS_OUT &= ~LED_DP;
+    }
 //    if (disp_count < 3) disp_count++; else disp_count = 0;
     disp_count++;
     disp_count &= 0x03;
@@ -158,4 +171,52 @@ __interrupt void ADC12ISR (void)
   case 34: break;                           // Vector 34:  ADC12IFG14
   default: break;
   }
+}
+
+#pragma vector=PORT1_VECTOR
+__interrupt void PORT1_ISR(void)
+{
+//  temp_p2 = BUTTON_IFG & BUTTON_2;
+    if ((P1IFG & BUTTON_1) > 0) {
+      P1IFG &= ~BUTTON_1;   // !! hier steht das gesetzte Bit
+      is_my_but_flags.is_butt_1_press = 1;
+      BUTTON_IE  |=  BUTTON_1;
+    }
+
+    if ((P1IFG & BUTTON_2) > 0) {
+      P1IFG &= ~BUTTON_2;   // !! hier steht das gesetzte Bit
+      is_my_but_flags.is_butt_2_press = 1;
+      BUTTON_IE  |=  BUTTON_2;
+    }
+
+    if ((P1IFG & BUTTON_3) > 0) {
+      P1IFG &= ~BUTTON_3;   // !! hier steht das gesetzte Bit
+      is_my_but_flags.is_butt_3_press = 1;
+      BUTTON_IE  |=  BUTTON_3;
+    }
+
+    if ((P1IFG & BUTTON_4) > 0) {
+      P1IFG &= ~BUTTON_4;   // !! hier steht das gesetzte Bit
+      is_my_but_flags.is_butt_4_press = 1;
+      BUTTON_IE  |=  BUTTON_4;
+    }
+
+    //  BUTTON_IFG = 0;
+//  BUTTON_IE &= ~BUTTON;            /* Debounce */
+//  WDTCTL = WDT_ADLY_250;
+//  IFG1 &= ~WDTIFG;                 /* clear interrupt flag */
+//  IE1 |= WDTIE;
+//  P1OUT^=BIT0;        // toggle P1.0
+
+/*
+  if (applicationMode == APP_APPLICATION_MODE)
+  {
+    tempCalibrated = tempAverage;
+    calibrateUpdate  = 1;
+  }
+  else
+  {
+    applicationMode = APP_APPLICATION_MODE; // Switch from STANDBY to APPLICATION MODE
+    __bic_SR_register_on_exit(LPM3_bits);
+  }*/
 }
