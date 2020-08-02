@@ -40,6 +40,8 @@ void InitializePins(void)
 {
     BUTTON_REN   = 0x0FF;    // all Pins of Port 1 input with a resistor
     BUTTON_OUT   = 0x0FF;    // all Pins of Port 1 with pull up
+    BUTTON_IES   = BUTTON_1 | BUTTON_2 | BUTTON_3 | BUTTON_4 | BUTTON_5 | BUTTON_6; // buttonPins of Port1 Hi/Lo edge
+    BUTTON_IFG   = 0x000;    // P1 IFGs cleared
     DISPLAY_DIR  = 0xFF;     // configure P2.x as output
     SIGNALS_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC | LED_DP;
 
@@ -117,6 +119,10 @@ void InitializeTimerA(void)
     // Configure counter 3
     TA0CCTL3 = CCIE;            // CCR2 toggle, interrupt enabled
     TA0CCR3 = TIME_PERIOD_300ms;   // default for 333 msec
+
+    // Configure counter 4
+    TA0CCTL4 = CCIE;            // CCR2 toggle, interrupt enabled
+    TA0CCR4 = TIME_PERIOD_100ms2;   // default for 100 msec
 
     // Configure timer A0 configureregister
     TA0CTL = TASSEL__ACLK | MC__CONTINUOUS | TACLR;

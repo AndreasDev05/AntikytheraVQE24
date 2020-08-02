@@ -163,17 +163,24 @@ void ADC_scheduler(enum ADC_Work ADC_work);
 // VARIABLE
 /* The timer (32kHz) give a 1sec event */
 #define     TIME_PERIOD_SEC     0x03FFF
-/* Interval zum abfragen des ADC  100ms Ergebnises 50000 */
-#define     TIME_PERIOD_100ms   0x0C350
-/* Interval zum abfragen der Schalter 0.5ms */
-#define     TIME_PERIOD_300ms   0x01555
+
 /* Interval zum Refresh der Anzeige 333ms */
 #define     TIME_PERIOD_1       100
+
 /* Interval zum Steuern des Multiplex 0.125ms */
 #define     TIME_PERIOD_2       3
+
+/* Interval zum abfragen des ADC  100ms Ergebnises 50000 */
+#define     TIME_PERIOD_100ms2   0x0C80
+
 /* Interval zum Weiterschalten der Ziffer 6.66ms */
 #define     TIME_PERIOD_DIGT       3333
 
+/* Interval zum abfragen des ADC  100ms Ergebnises 50000 */
+#define     TIME_PERIOD_100ms   0x0C350
+
+/* Interval zum abfragen der Schalter 0.5ms */
+#define     TIME_PERIOD_300ms   0x01555
 
 
 #endif /* INCLUDES_DIGI_CLOCK_H_ */

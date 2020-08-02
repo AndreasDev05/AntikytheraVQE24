@@ -13,7 +13,6 @@
 #include "digi_clock_isr.h"
 
 // Variablen in den Interruptfkt. -----
-    extern volatile uint8_t is_sec,is_msec,is_msec2,is_100ms,is_300ms;
 // Variables for display management
     extern volatile const uint16_t disp_pos[4];
     extern volatile uint8_t disp_out[4];
@@ -34,6 +33,7 @@
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void TIMER0_A0_ISR(void)
 {
+    extern volatile uint8_t is_sec;
     TA0CCR0   += TIME_PERIOD_SEC;
     is_sec++;
     __no_operation();                         // For debugger
@@ -44,6 +44,7 @@ __interrupt void TIMER0_A0_ISR(void)
 #pragma vector=TIMER0_A1_VECTOR
 __interrupt void TIMER0_A1_ISR(void)
 {
+    extern volatile uint8_t is_msec,is_msec2,is_100ms2,is_300ms;
     switch (__even_in_range(TA0IV, 14))
     {
     case 0:
@@ -62,6 +63,8 @@ __interrupt void TIMER0_A1_ISR(void)
         is_300ms++;
         break;                         // CCR3 not used
     case 8:
+        TA0CCR4 += TIME_PERIOD_100ms2;
+        is_100ms2++;
         break;                         // CCR4 not used
     case 10:
         break;                         // CCR5 not used
@@ -106,6 +109,7 @@ __interrupt void TIMER1_A0_ISR(void)
 #pragma vector=TIMER1_A1_VECTOR
 __interrupt void TIMER1_A1_ISR(void)
 {
+    extern uint8_t is_100ms;
     switch (__even_in_range(TA1IV, 14))
     {
     case 0:
@@ -176,29 +180,48 @@ __interrupt void ADC12ISR (void)
 #pragma vector=PORT1_VECTOR
 __interrupt void PORT1_ISR(void)
 {
+    extern volatile uint8_t butt_is_int_set;
 //  temp_p2 = BUTTON_IFG & BUTTON_2;
     if ((P1IFG & BUTTON_1) > 0) {
       P1IFG &= ~BUTTON_1;   // !! hier steht das gesetzte Bit
-      is_my_but_flags.is_butt_1_press = 1;
-      BUTTON_IE  |=  BUTTON_1;
+      butt_is_int_set |= BUTTON_1;
+      BUTTON_IFG  |=  BUTTON_1;
     }
 
     if ((P1IFG & BUTTON_2) > 0) {
       P1IFG &= ~BUTTON_2;   // !! hier steht das gesetzte Bit
-      is_my_but_flags.is_butt_2_press = 1;
-      BUTTON_IE  |=  BUTTON_2;
+      butt_is_int_set |= BUTTON_2;
+      BUTTON_IFG  |=  BUTTON_2;
     }
 
     if ((P1IFG & BUTTON_3) > 0) {
       P1IFG &= ~BUTTON_3;   // !! hier steht das gesetzte Bit
-      is_my_but_flags.is_butt_3_press = 1;
-      BUTTON_IE  |=  BUTTON_3;
+      butt_is_int_set |= BUTTON_3;
+      BUTTON_IFG  |=  BUTTON_3;
     }
 
     if ((P1IFG & BUTTON_4) > 0) {
       P1IFG &= ~BUTTON_4;   // !! hier steht das gesetzte Bit
-      is_my_but_flags.is_butt_4_press = 1;
-      BUTTON_IE  |=  BUTTON_4;
+      butt_is_int_set |= BUTTON_4;
+      BUTTON_IFG  |=  BUTTON_4;
+    }
+
+    if ((P1IFG & BUTTON_4) > 0) {
+      P1IFG &= ~BUTTON_4;   // !! hier steht das gesetzte Bit
+      butt_is_int_set |= BUTTON_4;
+      BUTTON_IFG  |=  BUTTON_4;
+    }
+
+    if ((P1IFG & BUTTON_5) > 0) {
+      P1IFG &= ~BUTTON_5;   // !! hier steht das gesetzte Bit
+      butt_is_int_set |= BUTTON_5;
+      BUTTON_IFG  |=  BUTTON_5;
+    }
+
+    if ((P1IFG & BUTTON_6) > 0) {
+      P1IFG &= ~BUTTON_6;   // !! hier steht das gesetzte Bit
+      butt_is_int_set |= BUTTON_6;
+      BUTTON_IFG  |=  BUTTON_6;
     }
 
     //  BUTTON_IFG = 0;

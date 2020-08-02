@@ -10,7 +10,7 @@
 
 // Variablen in den Interruptfkt. -----
     volatile bool is_pwr_good = true;
-    volatile uint8_t is_sec,is_msec,is_msec2, is_100ms, is_300ms = 0;
+    volatile uint8_t is_sec,is_msec,is_msec2, is_100ms, is_100ms2, is_300ms = 0;
 
     // Which value will be displayed
     volatile uint8_t eve_condition = view_temp_out;
@@ -32,6 +32,9 @@
     volatile uint8_t disp_count = 0;
     // the brightness of the display: it is recommended to use values between 10 and "TIME_PERIOD_DIGT"-10.
     volatile uint16_t  disp_brightness = 10;  // brightness
+
+// Variables for button-logic
+    volatile uint8_t butt_is_int_set;
 
 // Variables for ADC12
 volatile uint16_t adc_out_raw[8];
@@ -106,6 +109,10 @@ int main(void)
                 {
                     GenerateDispOut();
                 }
+            }
+            if (is_100ms2 != 0)
+            {
+                is_100ms2--;
             }
             if (is_300ms != 0)
             {
