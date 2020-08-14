@@ -26,6 +26,12 @@
 #define     BUTTON_6              BIT5      // Alarm off
 #define     PWR_UP                BIT7      // 5 Volt ready
 
+#define     BTN_PRESS_SHORT       BIT0
+#define     BTN_PRESS_LONG        BIT1
+#define     BTN_PRESS_INTER       BIT2
+#define     BTN_PRESS_DOUBL       BIT3
+#define     BTN_PRESS_INTER_FIRST BIT7
+
 #define     DISPLAY_OUT           P2OUT
 #define     DISPLAY_DIR           P2DIR
 #define     DISPLAY_IN            P2IN

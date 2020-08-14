@@ -42,6 +42,7 @@ void InitializePins(void)
     BUTTON_OUT   = 0x0FF;    // all Pins of Port 1 with pull up
     BUTTON_IES   = BUTTON_1 | BUTTON_2 | BUTTON_3 | BUTTON_4 | BUTTON_5 | BUTTON_6; // buttonPins of Port1 Hi/Lo edge
     BUTTON_IFG   = 0x000;    // P1 IFGs cleared
+    BUTTON_IE    = BUTTON_1 | BUTTON_2 | BUTTON_3 | BUTTON_4 | BUTTON_5 | BUTTON_6; // buttonPins interrupt enable
     DISPLAY_DIR  = 0xFF;     // configure P2.x as output
     SIGNALS_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC | LED_DP;
 
@@ -394,12 +395,12 @@ void Int2str_m(int16_t number_int,volatile uint8_t *disp_local)
 
     if (number_int < 0)
     {
-        SIGNALS_OUT |= LED_OSCI_FAULT;
+//        SIGNALS_OUT |= LED_OSCI_FAULT;
         tempInt = number_int * (-1);
     }
     else
     {
-        SIGNALS_OUT &= ~LED_OSCI_FAULT;
+//        SIGNALS_OUT &= ~LED_OSCI_FAULT;
         tempInt = number_int;
     }
 
