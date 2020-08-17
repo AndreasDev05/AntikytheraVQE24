@@ -180,40 +180,40 @@ __interrupt void ADC12ISR (void)
 #pragma vector=PORT1_VECTOR
 __interrupt void PORT1_ISR(void)
 {
-    extern volatile uint8_t butt_is_int_set;
+    extern volatile uint8_t btn_is_int_set;
 //  temp_p2 = BUTTON_IFG & BUTTON_2;
     if ((P1IFG & BUTTON_1) > 0) {
-      butt_is_int_set |= BUTTON_1;
+      btn_is_int_set |= BUTTON_1;
       BUTTON_IFG  &=  ~BUTTON_1;
     }
 
     if ((P1IFG & BUTTON_2) > 0) {
-      butt_is_int_set |= BUTTON_2;
+      btn_is_int_set |= BUTTON_2;
       BUTTON_IFG  &=  ~BUTTON_2;
     }
 
     if ((P1IFG & BUTTON_3) > 0) {
-      butt_is_int_set |= BUTTON_3;
+      btn_is_int_set |= BUTTON_3;
       BUTTON_IFG  &=  ~BUTTON_3;
     }
 
     if ((P1IFG & BUTTON_4) > 0) {
-      butt_is_int_set |= BUTTON_4;
+      btn_is_int_set |= BUTTON_4;
       BUTTON_IFG  &=  ~BUTTON_4;
     }
 
     if ((P1IFG & BUTTON_4) > 0) {
-      butt_is_int_set |= BUTTON_4;
+      btn_is_int_set |= BUTTON_4;
       BUTTON_IFG  &=  ~BUTTON_4;
     }
 
     if ((P1IFG & BUTTON_5) > 0) {
-      butt_is_int_set |= BUTTON_5;
+      btn_is_int_set |= BUTTON_5;
       BUTTON_IFG  &=  ~BUTTON_5;
     }
 
     if ((P1IFG & BUTTON_6) > 0) {
-      butt_is_int_set |= BUTTON_6;
+      btn_is_int_set |= BUTTON_6;
       BUTTON_IFG  &=  ~BUTTON_6;
     }
 

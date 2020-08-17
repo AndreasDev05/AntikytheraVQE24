@@ -17,6 +17,7 @@ extern volatile uint8_t *disp_out_point;
 extern volatile uint16_t  *disp_out_int;
 extern volatile uint8_t disp_out_buf[4];
 extern volatile uint16_t  *disp_out_buf_int;
+extern volatile void *disp_out_buf_int_ptr;
 extern     int32_t calcu_extension,calcu_extension1;
 
 void InitializeCPU(void)

@@ -5,6 +5,7 @@
 #include <msp430f5529.h>
 #include <digi_clock.h>
 #include <digi_clock_isr.h>
+#include <digi_clock_btn_menu.h>
 
 // Variables global clock management
 
@@ -24,9 +25,11 @@
     volatile uint8_t disp_point = 0x2;
     // for fast overlay-functions on the display-memory
     volatile uint16_t  *disp_out_int = &disp_out;
+    volatile void *disp_out_int_ptr = &disp_out;
     // to reduce flicker save the display in this memory
     volatile uint8_t disp_out_buf[4];
     volatile uint16_t  *disp_out_buf_int = &disp_out_buf;
+    volatile void *disp_out_buf_int_ptr = &disp_out_buf;
     // pointer to the active display-memory
     volatile uint8_t *disp_out_point = disp_out;
     volatile uint8_t disp_count = 0;
@@ -34,10 +37,11 @@
     volatile uint16_t  disp_brightness = 10;  // brightness
 
 // Variables for button-logic
-    volatile uint8_t butt_is_int_set;
-    uint8_t    butt_in_work = 0;
+    volatile uint8_t btn_is_int_set;
+    uint8_t    btn_in_work = 0;
     uint16_t   btn_counter[6] = {0,0,0,0,0,0};
     uint8_t    btn_event[6] = {0,0,0,0,0,0};
+    void      *btn_event_int_ptr = &btn_event[6]; // later used 16 bit integer values are used to accelerate the comparison.
 
 // Variables for ADC12
 volatile uint16_t adc_out_raw[8];
@@ -116,79 +120,7 @@ int main(void)
             if (is_100ms2 != 0)
             {
                 is_100ms2--;
-/*
- * the order of butt_in_work and butt_is_int_set is imported
- * it released the debouncing of buttons
- */
-
-                if (butt_in_work)
-                {
-                    if (butt_in_work & BUTTON_1)
-                    {
-                        temp_byte = ~ BUTTON_IN;
-                        if (temp_byte & BUTTON_1)
-                        {
-                            btn_counter[0]++;
-                            if ((!(btn_event[0] & BTN_PRESS_INTER_FIRST)) && (btn_counter[0] >= 20))
-                            {
-                                btn_event[0] |= BTN_PRESS_INTER_FIRST | BTN_PRESS_INTER;
-                            }
-                            if ((btn_event[0] & BTN_PRESS_INTER_FIRST) && (!(btn_counter[0] & 7)))
-                                    btn_event[0] |= BTN_PRESS_INTER;
-                        }
-                        else // Push button released
-                        {
-                            if (btn_counter[0] > 1)
-                            {
-                                if ((btn_counter[0] > 3) & (btn_counter[0] < 15))
-                                {
-                                    btn_event[0] |= BTN_PRESS_SHORT;
-                                }
-                                if ((btn_counter[0] >= 15) & (btn_counter[0] < 300))
-                                {
-                                    btn_event[0] |= BTN_PRESS_LONG;
-                                }
-                                btn_counter[0] = 0;
-                                butt_in_work &= ~BUTTON_1;
-                                btn_event[0] &= ~BTN_PRESS_INTER_FIRST;
-                            }
-                        }
-                    }
-                }
-                if (butt_is_int_set)
-                {
-                    if (butt_is_int_set & BUTTON_1)
-                    {
-                        if (!(butt_in_work & BUTTON_1)) butt_in_work |= BUTTON_1;
-                        butt_is_int_set &= ~BUTTON_1;
-                    }
-                    if (butt_is_int_set & BUTTON_2)
-                    {
-                        butt_in_work |= BUTTON_2;
-                        butt_is_int_set &= ~BUTTON_2;
-                    }
-                    if (butt_is_int_set & BUTTON_3)
-                    {
-                        butt_in_work |= BUTTON_3;
-                        butt_is_int_set &= ~BUTTON_3;
-                    }
-                    if (butt_is_int_set & BUTTON_4)
-                    {
-                        butt_in_work |= BUTTON_4;
-                        butt_is_int_set &= ~BUTTON_4;
-                    }
-                    if (butt_is_int_set & BUTTON_5)
-                    {
-                        butt_in_work |= BUTTON_5;
-                        butt_is_int_set &= ~BUTTON_5;
-                    }
-                    if (butt_is_int_set & BUTTON_6)
-                    {
-                        butt_in_work |= BUTTON_6;
-                        butt_is_int_set &= ~BUTTON_6;
-                    }
-
-                }
+                btn_to_event();
             }
             if (is_300ms != 0)
             {
@@ -213,21 +145,10 @@ int main(void)
 /*
  * Button-events
  */
-            if (btn_event[0] & BTN_PRESS_SHORT)
-            {
-//               SIGNALS_OUT ^= LED_OSCI_FAULT;
-               btn_event[0] &= ~BTN_PRESS_SHORT;
-            }
-            if (btn_event[0] & BTN_PRESS_LONG)
-            {
-//               SIGNALS_OUT ^= LED_OSCI_FAULT;
-               btn_event[0] &= ~BTN_PRESS_LONG;
-            }
-            if (btn_event[0] & BTN_PRESS_INTER)
-            {
-               SIGNALS_OUT ^= LED_OSCI_FAULT;
-               btn_event[0] &= ~BTN_PRESS_INTER;
-            }//          SIGNALS_OUT ^= LED_SEC;              // toggle P4.0
+            if ((*(uint16_t *) btn_event_int_ptr)
+                    || (*(uint16_t *) btn_event_int_ptr + 1)
+                    || (*(uint16_t *) btn_event_int_ptr + 2))
+                clock_event_to_menue();
             __no_operation();                         // For debugger
         }
         else
