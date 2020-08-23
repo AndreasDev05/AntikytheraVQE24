@@ -18,45 +18,56 @@ void btn_to_event(void)
     extern uint8_t btn_in_work;
     extern uint16_t btn_counter[6];
     extern uint8_t btn_event[6];
-    uint8_t invert_BUTTON_IN;
+    uint8_t invert_BUTTON_IN,btn_i,btn_j;
     /*
      * the order of btn_in_work and btn_is_int_set is imported
      * it released the debouncing of buttons
      */
     if (btn_in_work)
     {
+// TODO Bei der FOR-Schleife muss mal die Performance gemessen werden
         invert_BUTTON_IN = ~ BUTTON_IN;
-        if (btn_in_work & BUTTON_1)
+        btn_j = BUTTON_1;
+        for (btn_i=0; btn_i <= 5; btn_i++)
         {
-            if (invert_BUTTON_IN & BUTTON_1)
+            if (btn_in_work & btn_j)
             {
-                btn_counter[0]++;
-                if ((!(btn_event[0] & BTN_PRESS_INTER_FIRST)) && (btn_counter[0] >= 20))
+                if (invert_BUTTON_IN & btn_j)
                 {
-                    btn_event[0] |= BTN_PRESS_INTER_FIRST | BTN_PRESS_INTER;
+                    btn_counter[btn_i]++;
+                    if ((!(btn_event[btn_i] & BTN_PRESS_INTER_FIRST)) && (btn_counter[btn_i] >= 20))
+                    {
+                        btn_event[btn_i] |= BTN_PRESS_INTER_FIRST | BTN_PRESS_INTER;
+                    }
+                    if ((btn_event[btn_i] & BTN_PRESS_INTER_FIRST) && (!(btn_counter[btn_i] & 7)))
+                    btn_event[btn_i] |= BTN_PRESS_INTER;
                 }
-                if ((btn_event[0] & BTN_PRESS_INTER_FIRST) && (!(btn_counter[0] & 7)))
-                btn_event[0] |= BTN_PRESS_INTER;
-            }
-            else // Push button released
-            {
-                if (btn_counter[0] > 1)
+                else // Push button released
                 {
-                    if ((btn_counter[0] > 3) & (btn_counter[0] < 15))
+                    if (btn_counter[btn_i] > 1)
                     {
-                        btn_event[0] |= BTN_PRESS_SHORT;
+                        if ((btn_counter[btn_i] > 3) & (btn_counter[btn_i] < 15))
+                        {
+                            btn_event[btn_i] |= BTN_PRESS_SHORT;
+                        }
+                        if ((btn_counter[btn_i] >= 15) & (btn_counter[btn_i] < 300))
+                        {
+                            btn_event[btn_i] |= BTN_PRESS_LONG;
+                        }
+                        btn_counter[btn_i] = 0;
+                        btn_in_work &= ~btn_j;
+                        btn_event[btn_i] &= ~BTN_PRESS_INTER_FIRST;
                     }
-                    if ((btn_counter[0] >= 15) & (btn_counter[0] < 300))
-                    {
-                        btn_event[0] |= BTN_PRESS_LONG;
-                    }
-                    btn_counter[0] = 0;
-                    btn_in_work &= ~BUTTON_1;
-                    btn_event[0] &= ~BTN_PRESS_INTER_FIRST;
                 }
             }
+            btn_j <<= 1;
         }
     }
+
+/*
+ * the order of btn_in_work and btn_is_int_set is imported
+ * it released the debouncing of buttons
+ */
     if (btn_is_int_set)
     {
         if (btn_is_int_set & BUTTON_1)
@@ -66,27 +77,27 @@ void btn_to_event(void)
         }
         if (btn_is_int_set & BUTTON_2)
         {
-            btn_in_work |= BUTTON_2;
+            if (!(btn_in_work & BUTTON_2)) btn_in_work |= BUTTON_2;
             btn_is_int_set &= ~BUTTON_2;
         }
         if (btn_is_int_set & BUTTON_3)
         {
-            btn_in_work |= BUTTON_3;
+            if (!(btn_in_work & BUTTON_3)) btn_in_work |= BUTTON_3;
             btn_is_int_set &= ~BUTTON_3;
         }
         if (btn_is_int_set & BUTTON_4)
         {
-            btn_in_work |= BUTTON_4;
+            if (!(btn_in_work & BUTTON_4)) btn_in_work |= BUTTON_4;
             btn_is_int_set &= ~BUTTON_4;
         }
         if (btn_is_int_set & BUTTON_5)
         {
-            btn_in_work |= BUTTON_5;
+            if (!(btn_in_work & BUTTON_5)) btn_in_work |= BUTTON_5;
             btn_is_int_set &= ~BUTTON_5;
         }
         if (btn_is_int_set & BUTTON_6)
         {
-            btn_in_work |= BUTTON_6;
+            if (!(btn_in_work & BUTTON_6)) btn_in_work |= BUTTON_6;
             btn_is_int_set &= ~BUTTON_6;
         }
 
@@ -99,20 +110,100 @@ void btn_to_event(void)
 void clock_event_to_menue(void)
 {
     extern uint8_t btn_event[6];
-
-    if (btn_event[0] & BTN_PRESS_SHORT)
+    if (btn_event[0])
     {
-//               SIGNALS_OUT ^= LED_OSCI_FAULT;
-        btn_event[0] &= ~BTN_PRESS_SHORT;
+        if (btn_event[0] & BTN_PRESS_SHORT)
+        {
+            btn_event[0] &= ~BTN_PRESS_SHORT;
+        }
+        if (btn_event[0] & BTN_PRESS_LONG)
+        {
+            btn_event[0] &= ~BTN_PRESS_LONG;
+        }
+        if (btn_event[0] & BTN_PRESS_INTER)
+        {
+            SIGNALS_OUT ^= LED_OSCI_FAULT;
+            btn_event[0] &= ~BTN_PRESS_INTER;
+        }
     }
-    if (btn_event[0] & BTN_PRESS_LONG)
+// button 2 events
+    if (btn_event[1])
     {
-//               SIGNALS_OUT ^= LED_OSCI_FAULT;
-        btn_event[0] &= ~BTN_PRESS_LONG;
+        if (btn_event[1] & BTN_PRESS_SHORT)
+        {
+            btn_event[1] &= ~BTN_PRESS_SHORT;
+        }
+        if (btn_event[1] & BTN_PRESS_LONG)
+        {
+            btn_event[1] &= ~BTN_PRESS_LONG;
+        }
+        if (btn_event[1] & BTN_PRESS_INTER)
+        {
+            btn_event[1] &= ~BTN_PRESS_INTER;
+        }
     }
-    if (btn_event[0] & BTN_PRESS_INTER)
+// button 3 events
+    if (btn_event[2])
     {
-        SIGNALS_OUT ^= LED_OSCI_FAULT;
-        btn_event[0] &= ~BTN_PRESS_INTER;
-    } //          SIGNALS_OUT ^= LED_SEC;              // toggle P4.0
+        if (btn_event[2] & BTN_PRESS_SHORT)
+        {
+            btn_event[2] &= ~BTN_PRESS_SHORT;
+        }
+        if (btn_event[2] & BTN_PRESS_LONG)
+        {
+            btn_event[2] &= ~BTN_PRESS_LONG;
+        }
+        if (btn_event[2] & BTN_PRESS_INTER)
+        {
+            btn_event[2] &= ~BTN_PRESS_INTER;
+        }
+    }
+// button 4 events
+    if (btn_event[3])
+    {
+        if (btn_event[3] & BTN_PRESS_SHORT)
+        {
+            btn_event[3] &= ~BTN_PRESS_SHORT;
+        }
+        if (btn_event[3] & BTN_PRESS_LONG)
+        {
+            btn_event[3] &= ~BTN_PRESS_LONG;
+        }
+        if (btn_event[3] & BTN_PRESS_INTER)
+        {
+            btn_event[3] &= ~BTN_PRESS_INTER;
+        }
+    }
+// button 5 events
+    if (btn_event[4])
+    {
+        if (btn_event[4] & BTN_PRESS_SHORT)
+        {
+            btn_event[4] &= ~BTN_PRESS_SHORT;
+        }
+        if (btn_event[4] & BTN_PRESS_LONG)
+        {
+            btn_event[4] &= ~BTN_PRESS_LONG;
+        }
+        if (btn_event[4] & BTN_PRESS_INTER)
+        {
+            btn_event[4] &= ~BTN_PRESS_INTER;
+        }
+    }
+// button 6 events
+    if (btn_event[5])
+    {
+        if (btn_event[5] & BTN_PRESS_SHORT)
+        {
+            btn_event[5] &= ~BTN_PRESS_SHORT;
+        }
+        if (btn_event[5] & BTN_PRESS_LONG)
+        {
+            btn_event[5] &= ~BTN_PRESS_LONG;
+        }
+        if (btn_event[5] & BTN_PRESS_INTER)
+        {
+            btn_event[5] &= ~BTN_PRESS_INTER;
+        }
+    }
 }
