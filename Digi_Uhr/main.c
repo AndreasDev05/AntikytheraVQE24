@@ -5,15 +5,16 @@
 #include <msp430f5529.h>
 #include <digi_clock.h>
 #include <digi_clock_isr.h>
+#include <digi_clock_btn_menu.h>
 
 // Variables global clock management
 
 // Variablen in den Interruptfkt. -----
     volatile bool is_pwr_good = true;
-    volatile uint8_t is_sec,is_msec,is_msec2, is_100ms, is_300ms = 0;
+    volatile uint8_t is_sec,is_msec,is_msec2, is_100ms, is_100ms2, is_300ms = 0;
 
     // Which value will be displayed
-    volatile uint8_t eve_condition = view_temp_cpu;
+    volatile uint8_t eve_condition = view_temp_out;
 
 // Variables for display management
     // to fast find the pin-quartet on display-port
@@ -21,17 +22,26 @@
     // display-memory position and BCD-number
     volatile uint8_t disp_out[4] = {0x10,0x21,0x42,0x84};
     // display-memory decimal point
-    volatile uint8_t disp_point;
+    volatile uint8_t disp_point = 0x2;
     // for fast overlay-functions on the display-memory
     volatile uint16_t  *disp_out_int = &disp_out;
+    volatile void *disp_out_int_ptr = &disp_out;
     // to reduce flicker save the display in this memory
     volatile uint8_t disp_out_buf[4];
     volatile uint16_t  *disp_out_buf_int = &disp_out_buf;
+    volatile void *disp_out_buf_int_ptr = &disp_out_buf;
     // pointer to the active display-memory
     volatile uint8_t *disp_out_point = disp_out;
     volatile uint8_t disp_count = 0;
     // the brightness of the display: it is recommended to use values between 10 and "TIME_PERIOD_DIGT"-10.
     volatile uint16_t  disp_brightness = 10;  // brightness
+
+// Variables for button-logic
+    volatile uint8_t btn_is_int_set;
+    uint8_t    btn_in_work = 0;
+    uint16_t   btn_counter[6] = {0,0,0,0,0,0};
+    uint8_t    btn_event[6] = {0,0,0,0,0,0};
+    void      *btn_event_int_ptr = (uint16_t *)&btn_event[0]; // later used 16 bit integer values are used to accelerate the comparison.
 
 // Variables for ADC12
 volatile uint16_t adc_out_raw[8];
@@ -50,8 +60,10 @@ int32_t calcu_extension;
 int main(void)
 {
 
-    volatile uint16_t i;        // volatile to prevent optimization
+    volatile uint16_t i,i2,i3;        // volatile to prevent optimization
     volatile uint8_t temp_byte = 0;
+
+//    btn_event_int_ptr = (uint16_t *)&btn_event[0];
 
 //////////// Initialize CPU function
     InitializeCPU();
@@ -82,8 +94,9 @@ int main(void)
             {
                 is_sec--;
 //                ADC_scheduler(measure_bright_f_contr);
-                ADC_scheduler(measure_temp_cpu_f_disp);
+                ADC_scheduler(measure_temp_out_f_disp);
                 //                StartADCmeasurements(measurement_bright);
+//                SIGNALS_OUT ^= AL1;
             }
             if (is_100ms != 0)
             {
@@ -102,6 +115,15 @@ int main(void)
                     GenerateDispOut();
                     adc_out_ready &= ~TEMP_CPU_F_DISP_READY;
                 }
+                if (adc_out_ready & TEMP_OUT_F_DISP_READY)
+                {
+                    GenerateDispOut();
+                }
+            }
+            if (is_100ms2 != 0)
+            {
+                is_100ms2--;
+                btn_to_event();
             }
             if (is_300ms != 0)
             {
@@ -123,7 +145,16 @@ int main(void)
                  }
                  temp_s_sum >>= 3; */
             }
-//          SIGNALS_OUT ^= LED_SEC;              // toggle P4.0
+/*
+ * Button-events
+ */
+            i = *(uint16_t *) btn_event_int_ptr;
+            i2 = *(uint16_t *) (btn_event_int_ptr + sizeof(uint16_t));
+            i3 = *(uint16_t *) (btn_event_int_ptr + 2 * sizeof(uint16_t));
+            if ((*(uint16_t *) btn_event_int_ptr)
+                    || (*(uint16_t *) (btn_event_int_ptr + sizeof(uint16_t)))
+                    || (*(uint16_t *) (btn_event_int_ptr + 2 * sizeof(uint16_t))))
+                clock_event_to_menue();
             __no_operation();                         // For debugger
         }
         else

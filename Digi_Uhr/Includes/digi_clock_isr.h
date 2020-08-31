@@ -24,4 +24,6 @@ __interrupt void TIMER1_A1_ISR(void);
 
 __interrupt void ADC12ISR (void);
 
+__interrupt void PORT1_ISR(void);
+
 #endif /* INCLUDES_DIGI_CLOCK_ISR_H_ */
