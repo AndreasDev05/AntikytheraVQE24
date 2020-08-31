@@ -27,9 +27,14 @@ void btn_to_event(void)
     {
 // TODO Bei der FOR-Schleife muss mal die Performance gemessen werden
         invert_BUTTON_IN = ~ BUTTON_IN;
-        btn_j = BUTTON_1;
-        for (btn_i=0; btn_i <= 5; btn_i++)
+        btn_j = BUTTON_6;
+        btn_j <<= 1;
+        btn_i = 6;
+//        for (btn_i=0; btn_i <= 5; btn_i++)
+        do
         {
+            btn_j >>= 1;
+            btn_i--;
             if (btn_in_work & btn_j)
             {
                 if (invert_BUTTON_IN & btn_j)
@@ -60,8 +65,8 @@ void btn_to_event(void)
                     }
                 }
             }
-            btn_j <<= 1;
         }
+        while (btn_i > 0);
     }
 
 /*
@@ -110,6 +115,7 @@ void btn_to_event(void)
 void clock_event_to_menue(void)
 {
     extern uint8_t btn_event[6];
+
     if (btn_event[0])
     {
         if (btn_event[0] & BTN_PRESS_SHORT)

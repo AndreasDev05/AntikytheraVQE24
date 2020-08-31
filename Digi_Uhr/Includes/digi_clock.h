@@ -69,6 +69,8 @@
 #define     SIGNALS_OUT           P7OUT
 #define     SIGNALS_DIR           P7DIR
 #define     SIGNALS_IN            P7IN
+#define     SIGNALS_DS            P7DS
+
 #define     DARK                  BIT0      // Blanking Dunkeltastung
 #define     AL1                   BIT1      // Alarm Piezo
 #define     LED_OSCI_FAULT        BIT2      // LED Oszillator 4MHz schwingt nicht

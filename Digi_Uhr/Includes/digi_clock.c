@@ -46,6 +46,8 @@ void InitializePins(void)
     BUTTON_IE    = BUTTON_1 | BUTTON_2 | BUTTON_3 | BUTTON_4 | BUTTON_5 | BUTTON_6; // buttonPins interrupt enable
     DISPLAY_DIR  = 0xFF;     // configure P2.x as output
     SIGNALS_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC | LED_DP;
+    SIGNALS_DS  |= AL1;
+    SIGNALS_OUT |= AL1;
 
     VOLTMETER_SEL = U_BAT | U_TEMP | U_LIGTH;
 }
