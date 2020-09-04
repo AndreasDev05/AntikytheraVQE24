@@ -41,7 +41,7 @@
     uint8_t    btn_in_work = 0;
     uint16_t   btn_counter[6] = {0,0,0,0,0,0};
     uint8_t    btn_event[6] = {0,0,0,0,0,0};
-    void      *btn_event_int_ptr = (uint16_t *)&btn_event[0]; // later used 16 bit integer values are used to accelerate the comparison.
+    void const *btn_event_int_ptr = (uint16_t *)&btn_event[0]; // later used 16 bit integer values are used to accelerate the comparison.
 
 // Variables for ADC12
 volatile uint16_t adc_out_raw[8];
@@ -60,7 +60,6 @@ int32_t calcu_extension;
 int main(void)
 {
 
-    volatile uint16_t i,i2,i3;        // volatile to prevent optimization
     volatile uint8_t temp_byte = 0;
 
 //    btn_event_int_ptr = (uint16_t *)&btn_event[0];
@@ -148,9 +147,6 @@ int main(void)
 /*
  * Button-events
  */
-            i = *(uint16_t *) btn_event_int_ptr;
-            i2 = *(uint16_t *) (btn_event_int_ptr + sizeof(uint16_t));
-            i3 = *(uint16_t *) (btn_event_int_ptr + 2 * sizeof(uint16_t));
             if ((*(uint16_t *) btn_event_int_ptr)
                     || (*(uint16_t *) (btn_event_int_ptr + sizeof(uint16_t)))
                     || (*(uint16_t *) (btn_event_int_ptr + 2 * sizeof(uint16_t))))
