@@ -26,6 +26,12 @@
 #define     BUTTON_6              BIT5      // Alarm off
 #define     PWR_UP                BIT7      // 5 Volt ready
 
+#define     BTN_PRESS_SHORT       BIT0
+#define     BTN_PRESS_LONG        BIT1
+#define     BTN_PRESS_INTER       BIT2
+#define     BTN_PRESS_DOUBL       BIT3
+#define     BTN_PRESS_INTER_FIRST BIT7
+
 #define     DISPLAY_OUT           P2OUT
 #define     DISPLAY_DIR           P2DIR
 #define     DISPLAY_IN            P2IN
@@ -63,10 +69,13 @@
 #define     SIGNALS_OUT           P7OUT
 #define     SIGNALS_DIR           P7DIR
 #define     SIGNALS_IN            P7IN
-#define     DARK                  BIT0      // Dunkeltastung
+#define     SIGNALS_DS            P7DS
+
+#define     DARK                  BIT0      // Blanking Dunkeltastung
 #define     AL1                   BIT1      // Alarm Piezo
 #define     LED_OSCI_FAULT        BIT2      // LED Oszillator 4MHz schwingt nicht
 #define     LED_SEC               BIT3      // LED Sekunden
+#define     LED_DP                BIT7      // LED decimal point
 
 // ADC
 
@@ -162,17 +171,24 @@ void ADC_scheduler(enum ADC_Work ADC_work);
 // VARIABLE
 /* The timer (32kHz) give a 1sec event */
 #define     TIME_PERIOD_SEC     0x03FFF
-/* Interval zum abfragen des ADC  100ms Ergebnises 50000 */
-#define     TIME_PERIOD_100ms   0x0C350
-/* Interval zum abfragen der Schalter 0.5ms */
-#define     TIME_PERIOD_300ms   0x01555
+
 /* Interval zum Refresh der Anzeige 333ms */
 #define     TIME_PERIOD_1       100
+
 /* Interval zum Steuern des Multiplex 0.125ms */
 #define     TIME_PERIOD_2       3
+
+/* Interval zum abfragen des ADC  100ms Ergebnises 50000 */
+#define     TIME_PERIOD_100ms2   0x0C80
+
 /* Interval zum Weiterschalten der Ziffer 6.66ms */
 #define     TIME_PERIOD_DIGT       3333
 
+/* Interval zum abfragen des ADC  100ms Ergebnises 50000 */
+#define     TIME_PERIOD_100ms   0x0C350
+
+/* Interval zum abfragen der Schalter 0.5ms */
+#define     TIME_PERIOD_300ms   0x01555
 
 
 #endif /* INCLUDES_DIGI_CLOCK_H_ */

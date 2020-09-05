@@ -17,6 +17,7 @@ extern volatile uint8_t *disp_out_point;
 extern volatile uint16_t  *disp_out_int;
 extern volatile uint8_t disp_out_buf[4];
 extern volatile uint16_t  *disp_out_buf_int;
+extern volatile void *disp_out_buf_int_ptr;
 extern     int32_t calcu_extension,calcu_extension1;
 
 void InitializeCPU(void)
@@ -40,8 +41,13 @@ void InitializePins(void)
 {
     BUTTON_REN   = 0x0FF;    // all Pins of Port 1 input with a resistor
     BUTTON_OUT   = 0x0FF;    // all Pins of Port 1 with pull up
+    BUTTON_IES   = BUTTON_1 | BUTTON_2 | BUTTON_3 | BUTTON_4 | BUTTON_5 | BUTTON_6; // buttonPins of Port1 Hi/Lo edge
+    BUTTON_IFG   = 0x000;    // P1 IFGs cleared
+    BUTTON_IE    = BUTTON_1 | BUTTON_2 | BUTTON_3 | BUTTON_4 | BUTTON_5 | BUTTON_6; // buttonPins interrupt enable
     DISPLAY_DIR  = 0xFF;     // configure P2.x as output
-    SIGNALS_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC;
+    SIGNALS_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC | LED_DP;
+    SIGNALS_DS  |= AL1;
+    SIGNALS_OUT |= AL1;
 
     VOLTMETER_SEL = U_BAT | U_TEMP | U_LIGTH;
 }
@@ -117,6 +123,10 @@ void InitializeTimerA(void)
     // Configure counter 3
     TA0CCTL3 = CCIE;            // CCR2 toggle, interrupt enabled
     TA0CCR3 = TIME_PERIOD_300ms;   // default for 333 msec
+
+    // Configure counter 4
+    TA0CCTL4 = CCIE;            // CCR2 toggle, interrupt enabled
+    TA0CCR4 = TIME_PERIOD_100ms2;   // default for 100 msec
 
     // Configure timer A0 configureregister
     TA0CTL = TASSEL__ACLK | MC__CONTINUOUS | TACLR;
@@ -365,6 +375,9 @@ void GenerateDispOut(void)
 //        Int2str_m(adc_out_temp_cpu_f_disp, &disp_out);
         Int2str_m(calcu_extension, &disp_out);
         break;
+    case view_temp_out:
+        Int2str_m(adc_out_temp_out_f_disp, &disp_out);
+        break;
     }
     *disp_out_int &= 0x0F0F;
     *(disp_out_int + 1) &= 0x0F0F;
@@ -385,12 +398,12 @@ void Int2str_m(int16_t number_int,volatile uint8_t *disp_local)
 
     if (number_int < 0)
     {
-        SIGNALS_OUT |= LED_OSCI_FAULT;
+//        SIGNALS_OUT |= LED_OSCI_FAULT;
         tempInt = number_int * (-1);
     }
     else
     {
-        SIGNALS_OUT &= ~LED_OSCI_FAULT;
+//        SIGNALS_OUT &= ~LED_OSCI_FAULT;
         tempInt = number_int;
     }
 
