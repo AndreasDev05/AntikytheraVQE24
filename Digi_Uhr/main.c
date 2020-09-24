@@ -6,6 +6,7 @@
 #include <digi_clock.h>
 #include <digi_clock_isr.h>
 #include <digi_clock_btn_menu.h>
+#include <digi_clock_fkt.h>
 
 // Variables global clock management
 
@@ -24,7 +25,7 @@
     // display-memory decimal point
     volatile uint8_t disp_point = 0x2;
     // for fast overlay-functions on the display-memory
-    volatile uint16_t  *disp_out_int = &disp_out;
+    volatile uint16_t  *disp_out_int = disp_out;
     volatile void *disp_out_int_ptr = &disp_out;
     // to reduce flicker save the display in this memory
     volatile uint8_t disp_out_buf[4];
@@ -46,12 +47,13 @@
 // Variables for ADC12
 volatile uint16_t adc_out_raw[8];
 uint16_t adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
-        adc_out_batt_f_disp, adc_out_temp_cpu_f_disp_raw;
+        adc_out_batt_f_disp, adc_out_temp_cpu_f_disp_raw,
+        adc_out_temp_out_f_disp_raw;
 int16_t adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
 volatile bool adc_conv_ready;
-uint8_t  adc_out_ready = 0;  // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
+uint8_t adc_out_ready = 0; // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
 uint16_t temp_s_sum;
-int32_t  temp_cpu_coefficient; // precalculated factor for CPU-temperature measurement
+int32_t temp_cpu_coefficient; // precalculated factor for CPU-temperature measurement
 int32_t calcu_extension;
 
 /**
@@ -92,10 +94,18 @@ int main(void)
             if (is_sec != 0)
             {
                 is_sec--;
+                switch (eve_condition)
+                {
+                case view_temp_out:
 //                ADC_scheduler(measure_bright_f_contr);
-                ADC_scheduler(measure_temp_out_f_disp);
+                    ADC_scheduler(measure_temp_out_f_disp);
+                    break;
+                case view_temp_cpu:
+                    ADC_scheduler(measure_temp_cpu_f_disp);
+                    break;
+                }
                 //                StartADCmeasurements(measurement_bright);
-//                SIGNALS_OUT ^= AL1;
+//                CONTROL_OUT ^= AL1;
             }
             if (is_100ms != 0)
             {
@@ -104,19 +114,22 @@ int main(void)
                 {
 //                    i = CALADC12_15V_30C;
                     __no_operation();
-                    calcu_extension = (int32_t)((int32_t)adc_out_temp_cpu_f_disp_raw - (int32_t)CALADC12_15V_30C);
+/*                    calcu_extension = (int32_t)((int32_t)adc_out_temp_cpu_f_disp_raw - (int32_t)CALADC12_15V_30C);
                     calcu_extension *= temp_cpu_coefficient;
                     calcu_extension += 30000;
                     calcu_extension /= 100;
-                    adc_out_temp_cpu_f_disp = calcu_extension;
+                    adc_out_temp_cpu_f_disp = calcu_extension; */
 /*                            (uint16_t) (((int32_t) () * temp_cpu_coefficient
                                     + 30000) / 100); */
+                    calcu_temp_cpu_to_int();
                     GenerateDispOut();
                     adc_out_ready &= ~TEMP_CPU_F_DISP_READY;
                 }
                 if (adc_out_ready & TEMP_OUT_F_DISP_READY)
                 {
+                    calcu_temp_out_to_int();
                     GenerateDispOut();
+                    adc_out_ready &= ~TEMP_OUT_F_DISP_READY;
                 }
             }
             if (is_100ms2 != 0)

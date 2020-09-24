@@ -47,14 +47,15 @@
 #define     SERIAL_SEL            P3SEL
 #define     TXD                   BIT3      // TXD on P3.3
 #define     RXD                   BIT4      // RXD on P3.4
-/*
-#define     SIGNALS_OUT          P4OUT
-#define     SIGNALS_DIR          P4DIR
-#define     SIGNALS_IN           P4IN
-#define     DARK                  BIT0      // Dunkeltastung
-#define     AL1                   BIT1      // Alarm Piezo
-#define     LED_SEC               BIT2      // LED Sekunden
-*/
+
+#define     CONTROL_OUT           P4OUT
+#define     CONTROL_DIR           P4DIR
+#define     CONTROL_IN            P4IN
+#define     CONTROL_DS            P4DS
+#define     TURNON_OPA            BIT0      // switch the op-amp on
+#define     TURNON_RELAY          BIT1      // switch the relay on
+#define     AL1                   BIT2      // Alarm Piezo
+
 #define     CRYSTAL_SEL           P5SEL
 #define     XT2IN                 BIT2
 #define     XT2OUT                BIT3
@@ -72,9 +73,8 @@
 #define     SIGNALS_DS            P7DS
 
 #define     DARK                  BIT0      // Blanking Dunkeltastung
-#define     AL1                   BIT1      // Alarm Piezo
-#define     LED_OSCI_FAULT        BIT2      // LED Oszillator 4MHz schwingt nicht
-#define     LED_SEC               BIT3      // LED Sekunden
+#define     LED_OSCI_FAULT        BIT1      // LED Oszillator 4MHz schwingt nicht
+#define     LED_SEC               BIT2      // LED Sekunden
 #define     LED_DP                BIT7      // LED decimal point
 
 // ADC
@@ -82,6 +82,8 @@
 #define CALADC12_15V_30C  *((uint16_t *)0x1A1A)   // Temperature Sensor Calibration-30 C
                                                       //See device datasheet for TLV table memory mapping
 #define CALADC12_15V_85C  *((uint16_t *)0x1A1C)   // Temperature Sensor Calibration-85 C
+
+#define CORREC_OFFSET_PT100     3050
 
 // TYPEDEF & STRUCTs
 
@@ -140,6 +142,7 @@ enum ADC_Work
 #define     BRIGHT_F_DISP_READY   BIT3
 #define     TEMP_CPU_F_DISP_READY BIT4
 #define     TEMP_OUT_F_DISP_READY BIT5
+#define     FIRST_ADC_DISPLAY     BIT7
 
 // FUNCTIONS
 /* Initialize CPU and basic variables */

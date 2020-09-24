@@ -45,9 +45,11 @@ void InitializePins(void)
     BUTTON_IFG   = 0x000;    // P1 IFGs cleared
     BUTTON_IE    = BUTTON_1 | BUTTON_2 | BUTTON_3 | BUTTON_4 | BUTTON_5 | BUTTON_6; // buttonPins interrupt enable
     DISPLAY_DIR  = 0xFF;     // configure P2.x as output
-    SIGNALS_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC | LED_DP;
-    SIGNALS_DS  |= AL1;
-    SIGNALS_OUT |= AL1;
+    SIGNALS_DIR  = DARK | LED_OSCI_FAULT | LED_SEC | LED_DP;
+
+    CONTROL_DIR  = TURNON_OPA | TURNON_RELAY | AL1;
+    CONTROL_DS  |= AL1;
+    CONTROL_OUT |= AL1;
 
     VOLTMETER_SEL = U_BAT | U_TEMP | U_LIGTH;
 }
@@ -166,23 +168,24 @@ void InitializeADC12(void)
 void StartADCmeasurements(enum ADC_mesure_typ what_mesure)
 {
 
-    switch (what_mesure) // sorted by frequency of the call
+    switch (what_mesure)
+    // sorted by frequency of the call
     {
     case measurement_bright:
         ADC12CTL0 |= ADC12REF2_5V;               // Internal ref = 2.5V
-        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_2;  // ADC i/p ch A2 = brightness sensor (P6.2)
+        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_2; // ADC i/p ch A2 = brightness sensor (P6.2)
         break;
     case measurement_batt:
         ADC12CTL0 &= ~ADC12REF2_5V;               // Internal ref = 1.5V
-        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_0;   // ADC i/p ch A0 = batteries voltage (P6.0)
+        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_0; // ADC i/p ch A0 = batteries voltage (P6.0)
         break;
     case measurement_temp_cpu:
         ADC12CTL0 &= ~ADC12REF2_5V;               // Internal ref = 1.5V
-        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_10;  // ADC i/p ch A10 = temp sense i/p (intern)
+        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_10; // ADC i/p ch A10 = temp sense i/p (intern)
         break;
     case measurement_temp_out:
         ADC12CTL0 |= ADC12REF2_5V;                // Internal ref = 2.5V
-        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_1;   // ADC i/p ch A1 = temp sense out (P6.1)
+        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_1; // ADC i/p ch A1 = temp sense out (P6.1)
         break;
     }
     ADC12CTL1 |= ADC12CONSEQ_2;  // read permanent one channel
@@ -205,7 +208,7 @@ void ADC_scheduler(enum ADC_Work ADC_work)
     extern uint8_t adc_out_ready;
     extern uint16_t adc_out_bright_contr, adc_out_bright_f_disp,
                     adc_out_batt_f_contr, adc_out_batt_f_disp,
-                    adc_out_temp_cpu_f_disp_raw, adc_out_temp_out_f_disp;
+                    adc_out_temp_cpu_f_disp_raw, adc_out_temp_out_f_disp_raw;
 
     if (ADC_work != status_adc_ready)
     {
@@ -280,7 +283,7 @@ void ADC_scheduler(enum ADC_Work ADC_work)
             adc_out_ready |= TEMP_CPU_F_DISP_READY;
             break;
         case measure_temp_out_f_disp:
-            adc_out_temp_out_f_disp = adc_sum_raw;
+            adc_out_temp_out_f_disp_raw = adc_sum_raw;
             adc_out_ready |= TEMP_OUT_F_DISP_READY;
             break;
         }
@@ -373,7 +376,7 @@ void GenerateDispOut(void)
         break;
     case view_temp_cpu:
 //        Int2str_m(adc_out_temp_cpu_f_disp, &disp_out);
-        Int2str_m(calcu_extension, &disp_out);
+        Int2str_m(adc_out_temp_cpu_f_disp, &disp_out);
         break;
     case view_temp_out:
         Int2str_m(adc_out_temp_out_f_disp, &disp_out);
