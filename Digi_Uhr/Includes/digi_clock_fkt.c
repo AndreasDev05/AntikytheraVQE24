@@ -28,8 +28,8 @@ void calcu_temp_cpu_to_int(void)
 
 void calcu_temp_out_to_int(void)
 {
-    volatile int32_t calcu_extension;
-    volatile uint16_t temp_adc;
+    int32_t calcu_extension;
+    uint16_t temp_adc;
     extern int16_t adc_out_temp_out_f_disp, adc_out_temp_out_f_disp_raw;
     __no_operation();                         // For debugger
 
