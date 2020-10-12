@@ -128,6 +128,7 @@ enum ADC_Work
 {
     status_it_is_nothing = 0,
     status_adc_ready,
+    status_adc_pwr_go_on,
     measure_batt_f_contr,
     measure_batt_f_disp,
     measure_bright_f_contr,

@@ -205,49 +205,73 @@ void ADC_scheduler(enum ADC_Work ADC_work)
                                          status_it_is_nothing };
     extern volatile uint16_t adc_out_raw[8];
     extern volatile bool adc_conv_ready;
-    extern uint8_t adc_out_ready;
+    extern uint8_t adc_out_ready, adc_power_count;
     extern uint16_t adc_out_bright_contr, adc_out_bright_f_disp,
-                    adc_out_batt_f_contr, adc_out_batt_f_disp,
-                    adc_out_temp_cpu_f_disp_raw, adc_out_temp_out_f_disp_raw;
+            adc_out_batt_f_contr, adc_out_batt_f_disp,
+            adc_out_temp_cpu_f_disp_raw, adc_out_temp_out_f_disp_raw;
 
     if (ADC_work != status_adc_ready)
     {
-        if (_ADCtask[presentADCtask_point] == status_it_is_nothing) // first round
+        if ((CONTROL_OUT && TURNON_OPA) != 0)
         {
-            _ADCtask[presentADCtask_point] = ADC_work;
-            switch (_ADCtask[presentADCtask_point])
+            if (_ADCtask[presentADCtask_point] == status_it_is_nothing) // first round
             {
-            case measure_bright_f_disp:
-                StartADCmeasurements(measurement_bright);
-                break;
-            case measure_batt_f_contr:
-                StartADCmeasurements(measurement_batt);
-                break;
-            case measure_batt_f_disp:
-                StartADCmeasurements(measurement_batt);
-                break;
-            case measure_bright_f_contr:
-                StartADCmeasurements(measurement_bright);
-                break;
-            case measure_temp_cpu_f_disp:
-                StartADCmeasurements(measurement_temp_cpu);
-                break;
-            case measure_temp_out_f_disp:
-                StartADCmeasurements(measurement_temp_out);
-                break;
-            }
-        }
-        else    // (_ADCtask[presentADCtask_point] == status_it_is_nothing) searching next free memory
-        {
-            for (adc_i = 1; adc_i < 4; adc_i++) // search the next free register; if more measurements, forget it ;-)
-            {
-                if (_ADCtask[(presentADCtask_point + adc_i) & 3] == status_it_is_nothing)
+                _ADCtask[presentADCtask_point] = ADC_work;
+                adc_power_count = 2;
+                CONTROL_OUT |= TURNON_OPA;
+                switch (_ADCtask[presentADCtask_point])
                 {
-                    _ADCtask[(presentADCtask_point + adc_i) & 3] = ADC_work;
-                    break;  // stop the search
+                case measure_batt_f_contr:
+                    CONTROL_OUT |= TURNON_OPA | TURNON_RELAY;
+                    break;
+                case measure_batt_f_disp:
+                    CONTROL_OUT |= TURNON_OPA | TURNON_RELAY;
+                    break;
+                }
+            }
+            else // (_ADCtask[presentADCtask_point] == status_it_is_nothing) searching next free memory
+            {
+                for (adc_i = 1; adc_i < 4; adc_i++) // search the next free register; if more measurements, forget it ;-)
+                {
+                    if (_ADCtask[(presentADCtask_point + adc_i) & 3] == status_it_is_nothing)
+                    {
+                        _ADCtask[(presentADCtask_point + adc_i) & 3] = ADC_work;
+                        break;  // stop the search
+                    }
                 }
             }
         }
+        else // (CONTROL_OUT && TURNON_OPA) != 0
+        {
+            if (adc_power_count != 0)
+            {
+                adc_power_count--;
+            }
+            else
+            {
+                switch (_ADCtask[presentADCtask_point])
+                {
+                case measure_bright_f_disp:
+                    StartADCmeasurements(measurement_bright);
+                    break;
+                case measure_batt_f_contr:
+                    StartADCmeasurements(measurement_batt);
+                    break;
+                case measure_batt_f_disp:
+                    StartADCmeasurements(measurement_batt);
+                    break;
+                case measure_bright_f_contr:
+                    StartADCmeasurements(measurement_bright);
+                    break;
+                case measure_temp_cpu_f_disp:
+                    StartADCmeasurements(measurement_temp_cpu);
+                    break;
+                case measure_temp_out_f_disp:
+                    StartADCmeasurements(measurement_temp_out);
+                    break;
+                }  // switch
+            } // adc_power_count != 0
+        } // (CONTROL_OUT && TURNON_OPA) != 0
     }
     else    // (ADC_work != status_adc_ready)
     {
@@ -257,8 +281,7 @@ void ADC_scheduler(enum ADC_Work ADC_work)
         {
             adc_sum_raw += adc_out_raw[adc_i - 1];
         }
-        if (adc_sum_raw & 4)
-            adc_sum_raw += 8; // a simple rounding, because no floating point operation was implemented
+        if (adc_sum_raw & 4) adc_sum_raw += 8; // a simple rounding, because no floating point operation was implemented
         adc_sum_raw >>= 3;  // eql. div 8
         switch (_ADCtask[presentADCtask_point])
         {
@@ -292,25 +315,15 @@ void ADC_scheduler(enum ADC_Work ADC_work)
         presentADCtask_point &= 3;
         if (_ADCtask[presentADCtask_point] != status_it_is_nothing)
         {
+            adc_power_count = 2;
+            CONTROL_OUT |= TURNON_OPA; // the Vcc for the analog circuit switch OFF in ADC-ISR
             switch (_ADCtask[presentADCtask_point])
             {
-            case measure_bright_f_disp:
-                StartADCmeasurements(measurement_bright);
-                break;
             case measure_batt_f_contr:
-                StartADCmeasurements(measurement_batt);
+                CONTROL_OUT |=  TURNON_RELAY;
                 break;
             case measure_batt_f_disp:
-                StartADCmeasurements(measurement_batt);
-                break;
-            case measure_bright_f_contr:
-                StartADCmeasurements(measurement_bright);
-                break;
-            case measure_temp_cpu_f_disp:
-                StartADCmeasurements(measurement_temp_cpu);
-                break;
-            case measure_temp_out_f_disp:
-                StartADCmeasurements(measurement_temp_out);
+                CONTROL_OUT |=  TURNON_RELAY;
                 break;
             }
         }

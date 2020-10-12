@@ -52,6 +52,7 @@ uint16_t adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
 int16_t adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
 volatile bool adc_conv_ready;
 uint8_t adc_out_ready = 0; // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
+uint8_t adc_power_count = 0; // if i switch on the power for the analog circuit
 uint16_t temp_s_sum;
 int32_t temp_cpu_coefficient; // precalculated factor for CPU-temperature measurement
 int32_t calcu_extension;
@@ -107,9 +108,14 @@ int main(void)
                 //                StartADCmeasurements(measurement_bright);
 //                CONTROL_OUT ^= AL1;
             }
-            if (is_100ms != 0)
+//-----///////////////
+            if (is_100ms != 0)  // is derived from 4MHz clock
             {
                 is_100ms--;
+                if (adc_power_count != 0)
+                {
+                    ADC_scheduler(status_adc_pwr_go_on);
+                }
                 if (adc_out_ready & TEMP_CPU_F_DISP_READY)
                 {
 //                    i = CALADC12_15V_30C;
@@ -131,12 +137,14 @@ int main(void)
                     GenerateDispOut();
                     adc_out_ready &= ~TEMP_OUT_F_DISP_READY;
                 }
-            }
-            if (is_100ms2 != 0)
+            } // if (is_100ms != 0)
+//-----///////////////
+            if (is_100ms2 != 0)  // is derived from 32kHz clock
             {
                 is_100ms2--;
                 btn_to_event();
-            }
+            } // if (is_100ms2 != 0)
+//-----///////////////
             if (is_300ms != 0)
             {
                 is_300ms--;
@@ -146,6 +154,7 @@ int main(void)
             }
 //            for (i = 4000; i > 0; i--)
             ;     // delay
+//------///////////////
             if (adc_conv_ready)
             {
                 ADC_scheduler(status_adc_ready);

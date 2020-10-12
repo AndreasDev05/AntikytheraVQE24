@@ -152,6 +152,7 @@ __interrupt void ADC12ISR (void)
     adc_out_raw[adc_m_count] = ADC12MEM0;                   // Move results, IFG is cleared
     if (adc_m_count == 0)
     {
+        CONTROL_OUT &= ~(TURNON_OPA | TURNON_RELAY);
         adc_m_count = 8;
         ADC12CTL1 &=  ~(0x06);       //
         ADC12CTL0 &=  ~ADC12SC;            // switch ADC-process off
