@@ -9,4 +9,4 @@ Eine eigene Uhr zu bauen war ein Vorhaben das ich seit 35 Jahre habe. Damals bek
 
 **Hardware (PCB)**
 
-:construction: :construction_worker:
+Die Entwicklung der Leiterplatte ist erst enmal fertig, ich habe die "Produktion" beauftragt :-).
