@@ -75,6 +75,7 @@
 #define     DARK                  BIT0      // Blanking Dunkeltastung
 #define     LED_OSCI_FAULT        BIT1      // LED Oszillator 4MHz schwingt nicht
 #define     LED_SEC               BIT2      // LED Sekunden
+#define     LED_MINUS             BIT3      // LED für ein negatives Ergebnis
 #define     LED_DP                BIT7      // LED decimal point
 
 // ADC

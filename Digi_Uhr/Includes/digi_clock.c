@@ -45,7 +45,7 @@ void InitializePins(void)
     BUTTON_IFG   = 0x000;    // P1 IFGs cleared
     BUTTON_IE    = BUTTON_1 | BUTTON_2 | BUTTON_3 | BUTTON_4 | BUTTON_5 | BUTTON_6; // buttonPins interrupt enable
     DISPLAY_DIR  = 0xFF;     // configure P2.x as output
-    SIGNALS_DIR  = DARK | LED_OSCI_FAULT | LED_SEC | LED_DP;
+    SIGNALS_DIR  = DARK | LED_OSCI_FAULT | LED_SEC | LED_DP | LED_MINUS;
 
     CONTROL_DIR  = TURNON_OPA | TURNON_RELAY | AL1;
     CONTROL_DS  |= AL1;
@@ -67,7 +67,7 @@ void Initialize_UCS_and_Crystals(void)
                                                // 1/2 * (243 + 1) * 32768  = 4.000MHz
     __bic_SR_register(SCG0);            // Enable the FLL control loop
 
-    UCSCTL6 |= XCAP_3;                        // Internal load cap
+    UCSCTL6 |= XCAP_1;                        // Internal load cap
     UCSCTL6 = XT2DRIVE_0 | XT1DRIVE_0 ;       // primarily configure XT2 for 4MHz
     UCSCTL6 &= ~XT1OFF;                       // Set XT1 On
     UCSCTL5 = DIVM_0;

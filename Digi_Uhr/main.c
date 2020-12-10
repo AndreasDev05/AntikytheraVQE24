@@ -19,11 +19,11 @@
 
 // Variables for display management
     // to fast find the pin-quartet on display-port
-    unsigned const int disp_pos[2] = {0x2010,0x8040};
+    unsigned const int disp_pos[2] = {0x8040,0x2010};
     // display-memory position and BCD-number
-    volatile uint8_t disp_out[4] = {0x10,0x21,0x42,0x84};
+    volatile uint8_t disp_out[4] = {0x40,0x81,0x12,0x24};
     // display-memory decimal point
-    volatile uint8_t disp_point = 0x2;
+    volatile uint8_t disp_point = 0x1;
     // for fast overlay-functions on the display-memory
     volatile uint16_t  *disp_out_int = disp_out;
     volatile void *disp_out_int_ptr = &disp_out;

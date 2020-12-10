@@ -38,7 +38,7 @@ __interrupt void TIMER0_A0_ISR(void)
     is_sec++;
     __no_operation();                         // For debugger
 
-//    SIGNALS_OUT    ^= LED_SEC;                            // Toggle P7.3
+    SIGNALS_OUT    ^= LED_MINUS;                            // Toggle P7.3
 }
 
 #pragma vector=TIMER0_A1_VECTOR
