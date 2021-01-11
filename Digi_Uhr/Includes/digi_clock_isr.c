@@ -38,7 +38,6 @@ __interrupt void TIMER0_A0_ISR(void)
     is_sec++;
     __no_operation();                         // For debugger
 
-    SIGNALS_OUT    ^= LED_MINUS;                            // Toggle P7.3
 }
 
 #pragma vector=TIMER0_A1_VECTOR
@@ -85,7 +84,8 @@ __interrupt void TIMER1_A0_ISR(void)
            uint8_t temp_DP_mask;
 
     TA1CCR0         += TIME_PERIOD_DIGT;
-    SIGNALS_OUT    |= LED_SEC;                            // switch P7.3 on
+//    SIGNALS_OUT    |= LED_SEC;                            // switch P7.3 on
+    SIGNALS_OUT    |= DARK;
     DISPLAY_OUT = *(disp_out_point+disp_count);
 /*  switching decimal point */
     temp_DP_mask = *(disp_out_point+disp_count) >> 4;
@@ -96,6 +96,14 @@ __interrupt void TIMER1_A0_ISR(void)
     else
     {
         SIGNALS_OUT &= ~LED_DP;
+    }
+    if (disp_point & MINUS_PNT)
+    {
+        SIGNALS_OUT |= LED_MINUS;
+    }
+    else
+    {
+        SIGNALS_OUT &= ~LED_MINUS;
     }
 //    if (disp_count < 3) disp_count++; else disp_count = 0;
     disp_count++;
@@ -116,7 +124,8 @@ __interrupt void TIMER1_A1_ISR(void)
         break;
     case 2:
         TA1CCTL1 &= ~CCIE;             // CCR1 interrupt disabled
-        SIGNALS_OUT &= ~LED_SEC;      // switch P7.3 off
+//        SIGNALS_OUT &= ~LED_SEC;      // switch P7.3 off
+//        SIGNALS_OUT    &= ~DARK;
         break;
     case 4:
         TA1CCR2 += TIME_PERIOD_100ms;  // Add Offset to CCR3
@@ -152,7 +161,7 @@ __interrupt void ADC12ISR (void)
     adc_out_raw[adc_m_count] = ADC12MEM0;                   // Move results, IFG is cleared
     if (adc_m_count == 0)
     {
-        CONTROL_OUT &= ~(TURNON_OPA | TURNON_RELAY);
+//        CONTROL_OUT &= ~(TURNON_OPA | TURNON_RELAY);
         adc_m_count = 8;
         ADC12CTL1 &=  ~(0x06);       //
         ADC12CTL0 &=  ~ADC12SC;            // switch ADC-process off

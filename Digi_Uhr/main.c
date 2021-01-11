@@ -15,7 +15,7 @@
     volatile uint8_t is_sec,is_msec,is_msec2, is_100ms, is_100ms2, is_300ms = 0;
 
     // Which value will be displayed
-    volatile uint8_t eve_condition = view_temp_out;
+    volatile enum EVE_con_typ eve_condition = view_batt;
 
 // Variables for display management
     // to fast find the pin-quartet on display-port
@@ -23,7 +23,7 @@
     // display-memory position and BCD-number
     volatile uint8_t disp_out[4] = {0x40,0x81,0x12,0x24};
     // display-memory decimal point
-    volatile uint8_t disp_point = 0x1;
+    volatile uint8_t disp_point = DIGT_PNT1;
     // for fast overlay-functions on the display-memory
     volatile uint16_t  *disp_out_int = disp_out;
     volatile void *disp_out_int_ptr = &disp_out;
@@ -47,15 +47,15 @@
 // Variables for ADC12
 volatile uint16_t adc_out_raw[8];
 uint16_t adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
-        adc_out_batt_f_disp, adc_out_temp_cpu_f_disp_raw,
+        adc_out_batt_f_disp, adc_out_batt_f_disp_raw, adc_out_temp_cpu_f_disp_raw,
         adc_out_temp_out_f_disp_raw;
 int16_t adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
 volatile bool adc_conv_ready;
-uint8_t adc_out_ready = 0; // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
-uint8_t adc_power_count = 0; // if i switch on the power for the analog circuit
+uint8_t  adc_out_ready = 0; // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
+uint8_t  adc_power_count = 0; // if i switch on the power for the analog circuit
 uint16_t temp_s_sum;
-int32_t temp_cpu_coefficient; // precalculated factor for CPU-temperature measurement
-int32_t calcu_extension;
+int32_t  temp_cpu_coefficient, temp_out_coefficient, batt_coefficient; // precalculated factor for CPU-temperature measurement
+int32_t  calcu_extension;
 
 /**
  * main.c
@@ -95,14 +95,28 @@ int main(void)
             if (is_sec != 0)
             {
                 is_sec--;
+//                SIGNALS_OUT    ^= DARK;                            // Toggle P7.3
+//                CONTROL_OUT ^= TURNON_RELAY;
                 switch (eve_condition)
                 {
+                case normal:
+                    GenerateDispOut();
+                    break;
+                case view_sec_and_min:
+                    GenerateDispOut();
+                    break;
                 case view_temp_out:
 //                ADC_scheduler(measure_bright_f_contr);
                     ADC_scheduler(measure_temp_out_f_disp);
                     break;
                 case view_temp_cpu:
                     ADC_scheduler(measure_temp_cpu_f_disp);
+                    break;
+                case view_batt:
+                    ADC_scheduler(measure_batt_f_disp);
+                    break;
+                case view_bright:
+                    ADC_scheduler(measure_bright_f_disp);
                     break;
                 }
                 //                StartADCmeasurements(measurement_bright);
@@ -136,6 +150,17 @@ int main(void)
                     calcu_temp_out_to_int();
                     GenerateDispOut();
                     adc_out_ready &= ~TEMP_OUT_F_DISP_READY;
+                }
+                if (adc_out_ready & BATT_F_DISP_READY)
+                {
+                    calcu_batt_to_int();
+                    GenerateDispOut();
+                    adc_out_ready &= ~BATT_F_DISP_READY;
+                }
+                if (adc_out_ready & BRIGHT_F_DISP_READY)
+                {
+                    GenerateDispOut();
+                    adc_out_ready &= ~BRIGHT_F_DISP_READY;
                 }
             } // if (is_100ms != 0)
 //-----///////////////

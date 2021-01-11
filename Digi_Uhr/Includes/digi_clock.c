@@ -12,7 +12,6 @@
 
 extern volatile uint8_t disp_out[4];
 extern const uint16_t disp_pos[2];
-extern uint8_t disp_point;
 extern volatile uint8_t *disp_out_point;
 extern volatile uint16_t  *disp_out_int;
 extern volatile uint8_t disp_out_buf[4];
@@ -22,8 +21,9 @@ extern     int32_t calcu_extension,calcu_extension1;
 
 void InitializeCPU(void)
 {
-    extern int32_t temp_cpu_coefficient;
+    extern int32_t temp_cpu_coefficient, temp_out_coefficient, batt_coefficient;
     int32_t temp_prod;
+
     WDTCTL = WDTPW | WDTHOLD;       // stop watchdog timer
     __enable_interrupt();           // Enable interrupts globally
     temp_prod = CALADC12_15V_85C - CALADC12_15V_30C;
@@ -35,6 +35,11 @@ void InitializeCPU(void)
  * CAL_ADC_T85 - CAL_ADC_T30
  *
  */
+    temp_prod = CALADC12_25V_PT100_80C - CALADC12_25V_PT100_00C;
+    temp_out_coefficient = (int32_t)(80000 - -1000) / temp_prod;
+
+    temp_prod = (int32_t)CALADC12_25V_BATT_3V6 - CALADC12_25V_BATT_1V5;
+    batt_coefficient = (int32_t)(36000 - 15000) / temp_prod;
 }
 
 void InitializePins(void)
@@ -173,19 +178,19 @@ void StartADCmeasurements(enum ADC_mesure_typ what_mesure)
     {
     case measurement_bright:
         ADC12CTL0 |= ADC12REF2_5V;               // Internal ref = 2.5V
-        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_2; // ADC i/p ch A2 = brightness sensor (P6.2)
+        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_2;  // ADC i/p ch A2 = brightness sensor (P6.2)
         break;
     case measurement_batt:
-        ADC12CTL0 &= ~ADC12REF2_5V;               // Internal ref = 1.5V
-        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_0; // ADC i/p ch A0 = batteries voltage (P6.0)
+        ADC12CTL0 |= ADC12REF2_5V;               // Internal ref = 2.5V
+        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_0;   // ADC i/p ch A0 = batteries voltage (P6.0)
         break;
     case measurement_temp_cpu:
         ADC12CTL0 &= ~ADC12REF2_5V;               // Internal ref = 1.5V
-        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_10; // ADC i/p ch A10 = temp sense i/p (intern)
+        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_10;  // ADC i/p ch A10 = temp sense i/p (intern)
         break;
     case measurement_temp_out:
         ADC12CTL0 |= ADC12REF2_5V;                // Internal ref = 2.5V
-        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_1; // ADC i/p ch A1 = temp sense out (P6.1)
+        ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_1;   // ADC i/p ch A1 = temp sense out (P6.1)
         break;
     }
     ADC12CTL1 |= ADC12CONSEQ_2;  // read permanent one channel
@@ -205,14 +210,15 @@ void ADC_scheduler(enum ADC_Work ADC_work)
                                          status_it_is_nothing };
     extern volatile uint16_t adc_out_raw[8];
     extern volatile bool adc_conv_ready;
-    extern uint8_t adc_out_ready, adc_power_count;
-    extern uint16_t adc_out_bright_contr, adc_out_bright_f_disp,
-            adc_out_batt_f_contr, adc_out_batt_f_disp,
-            adc_out_temp_cpu_f_disp_raw, adc_out_temp_out_f_disp_raw;
+    extern uint8_t  adc_out_ready, adc_power_count;
+    extern uint16_t adc_out_bright_contr,
+            adc_out_bright_f_disp, adc_out_batt_f_contr,
+            adc_out_batt_f_disp_raw, adc_out_temp_cpu_f_disp_raw,
+            adc_out_temp_out_f_disp_raw;
 
     if (ADC_work != status_adc_ready)
     {
-        if ((CONTROL_OUT && TURNON_OPA) != 0)
+        if ((CONTROL_OUT & TURNON_OPA) == 0)
         {
             if (_ADCtask[presentADCtask_point] == status_it_is_nothing) // first round
             {
@@ -245,7 +251,15 @@ void ADC_scheduler(enum ADC_Work ADC_work)
         {
             if (adc_power_count != 0)
             {
-                adc_power_count--;
+                if (((_ADCtask[presentADCtask_point] == measure_batt_f_contr)
+                      || (_ADCtask[presentADCtask_point] == measure_batt_f_disp))
+                        && !(CONTROL_OUT & TURNON_RELAY))
+                {
+                    CONTROL_OUT |= TURNON_RELAY;
+                    adc_power_count = 2;
+                }
+                else
+                    adc_power_count--;
             }
             else
             {
@@ -273,7 +287,7 @@ void ADC_scheduler(enum ADC_Work ADC_work)
             } // adc_power_count != 0
         } // (CONTROL_OUT && TURNON_OPA) != 0
     }
-    else    // (ADC_work != status_adc_ready)
+    else    // (ADC_work == status_adc_ready)
     {
         adc_conv_ready = false;
         adc_sum_raw = 0;
@@ -298,7 +312,7 @@ void ADC_scheduler(enum ADC_Work ADC_work)
             adc_out_ready |= BRIGHT_F_DISP_READY;
             break;
         case measure_batt_f_disp:
-            adc_out_batt_f_disp = adc_sum_raw;
+            adc_out_batt_f_disp_raw = adc_sum_raw;
             adc_out_ready |= BATT_F_DISP_READY;
             break;
         case measure_temp_cpu_f_disp:
@@ -327,12 +341,20 @@ void ADC_scheduler(enum ADC_Work ADC_work)
                 break;
             }
         }
+        else
+        {
+            CONTROL_OUT &= ~(TURNON_OPA | TURNON_RELAY);
+        }
     }
 }
+/*
+ * end ADC_scheduler
+ */
 
 void GenerateDispOut(void)
 {
     extern volatile uint8_t eve_condition;
+    extern uint8_t disp_point;
     extern uint16_t adc_out_bright_contr, adc_out_bright_f_disp,
                     adc_out_batt_f_contr, adc_out_batt_f_disp,
                     adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
@@ -345,6 +367,7 @@ void GenerateDispOut(void)
     }
     else
     {   */
+    disp_point &= ~(DIGT_PNT1 | DIGT_PNT2 | DIGT_PNT3 | DIGT_PNT4 | MINUS_PNT);
     disp_out_point = disp_out_buf;
     switch (eve_condition)
     {
@@ -390,9 +413,18 @@ void GenerateDispOut(void)
     case view_temp_cpu:
 //        Int2str_m(adc_out_temp_cpu_f_disp, &disp_out);
         Int2str_m(adc_out_temp_cpu_f_disp, &disp_out);
+        disp_point |= DIGT_PNT2;
         break;
     case view_temp_out:
         Int2str_m(adc_out_temp_out_f_disp, &disp_out);
+        disp_point |= DIGT_PNT2;
+        break;
+    case view_batt:
+        Int2str_m(adc_out_batt_f_disp, &disp_out);
+        disp_point |= DIGT_PNT3;
+        break;
+    case view_bright:
+        Int2str_m(adc_out_bright_f_disp, &disp_out);
         break;
     }
     *disp_out_int &= 0x0F0F;
@@ -410,42 +442,45 @@ void Int2str_m(int16_t number_int,volatile uint8_t *disp_local)
 // convert a integer with 9999 to BCD / char[4] array
 // !! this function is for MCUs and has no ERRORcontrol !!
 {
+    extern uint8_t disp_point;
     int16_t tempInt;
 
     if (number_int < 0)
     {
 //        SIGNALS_OUT |= LED_OSCI_FAULT;
+        disp_point |= MINUS_PNT;
         tempInt = number_int * (-1);
     }
     else
     {
 //        SIGNALS_OUT &= ~LED_OSCI_FAULT;
         tempInt = number_int;
+        disp_point &= ~MINUS_PNT;
     }
 
     if (tempInt > 999)
     {
-        *(disp_local + 3) = tempInt / 1000;
+        *(disp_local + 0) = tempInt / 1000;
         tempInt = tempInt % 1000;
     }
     else
-        *(disp_local + 3) = 0;
+        *(disp_local + 0) = 0;
     if (tempInt > 99)
     {
-        *(disp_local + 2) = tempInt / 100;
+        *(disp_local + 1) = tempInt / 100;
         tempInt %= 100;
     }
     else
-        *(disp_local + 2) = 0;
+        *(disp_local + 1) = 0;
     if (tempInt > 9)
     {
-        *(disp_local + 1) = tempInt / 10;
-        *disp_local = tempInt % 10;
+        *(disp_local + 2) = tempInt / 10;
+        *(disp_local + 3) = tempInt % 10;
     }
     else
     {
-        *(disp_local + 1) = 0;
-        *disp_local = tempInt;
+        *(disp_local + 2) = 0;
+        *(disp_local + 3) = tempInt;
     }
 }
 

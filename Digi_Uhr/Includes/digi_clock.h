@@ -44,6 +44,13 @@
 #define     DIGT_3                BIT6
 #define     DIGT_4                BIT7
 
+#define     DIGT_PNT1             BIT1
+#define     DIGT_PNT2             BIT0
+#define     DIGT_PNT3             BIT3
+#define     DIGT_PNT4             BIT2
+#define     SEC_PNT               BIT4
+#define     MINUS_PNT             BIT5
+
 #define     SERIAL_SEL            P3SEL
 #define     TXD                   BIT3      // TXD on P3.3
 #define     RXD                   BIT4      // RXD on P3.4
@@ -86,12 +93,20 @@
 
 #define CORREC_OFFSET_PT100     3050
 
+#define CALADC12_25V_PT100_00C  398               // Temperature sensor PT100 calibration 0,0 C (100Ω)
+
+#define CALADC12_25V_PT100_80C  1947
+
+#define CALADC12_25V_BATT_1V5  632               // Battery Calibration 1,5V
+
+#define CALADC12_25V_BATT_3V6  2948              // Battery Calibration 3,6V
+
 // TYPEDEF & STRUCTs
 
 // Variablen die "globale" Zusände steuern ----
 // variables that control "global" states
 
-enum
+enum EVE_con_typ
 {
     normal = 0, // (hh:mm)
     view_sec_and_min,
@@ -100,6 +115,8 @@ enum
     view_year,
     view_temp_cpu,
     view_temp_out,
+    view_bright,
+    view_batt,
     change_sec,
     change_min,
     change_h,
