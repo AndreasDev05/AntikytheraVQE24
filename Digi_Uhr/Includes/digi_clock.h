@@ -18,12 +18,25 @@
 #define     BUTTON_IES            P1IES
 #define     BUTTON_IFG            P1IFG
 #define     BUTTON_REN            P1REN
-#define     BUTTON_1              BIT0      // Switch left
-#define     BUTTON_2              BIT1      // Switch right
-#define     BUTTON_3              BIT2      // Switch up
-#define     BUTTON_4              BIT3      // Switch down
+
+// #ifdef HW_Ver1_2
+#define     BUTTON_1              BIT0      // Switch down
+#define     BUTTON_2              BIT1      // Switch up
+#define     BUTTON_3              BIT2      // Switch left
+#define     BUTTON_4              BIT3      // Switch right
 #define     BUTTON_5              BIT4      // Menu
 #define     BUTTON_6              BIT5      // Alarm off
+//#endif
+
+/*#ifdef HW_Ver1_0
+#define     BUTTON_1              BIT0      // Switch down
+#define     BUTTON_2              BIT2      // Switch up
+#define     BUTTON_3              BIT4      // Switch left
+#define     BUTTON_4              BIT6      // Switch right
+#define     BUTTON_5              BIT1      // Menu
+#define     BUTTON_6              BIT3      // Alarm off
+#endif  */
+
 #define     PWR_UP                BIT7      // 5 Volt ready
 
 #define     BTN_PRESS_SHORT       BIT0
@@ -44,17 +57,25 @@
 #define     DIGT_3                BIT6
 #define     DIGT_4                BIT7
 
+#define     DIGT_PNT1             BIT1
+#define     DIGT_PNT2             BIT0
+#define     DIGT_PNT3             BIT3
+#define     DIGT_PNT4             BIT2
+#define     SEC_PNT               BIT4
+#define     MINUS_PNT             BIT5
+
 #define     SERIAL_SEL            P3SEL
 #define     TXD                   BIT3      // TXD on P3.3
 #define     RXD                   BIT4      // RXD on P3.4
-/*
-#define     SIGNALS_OUT          P4OUT
-#define     SIGNALS_DIR          P4DIR
-#define     SIGNALS_IN           P4IN
-#define     DARK                  BIT0      // Dunkeltastung
-#define     AL1                   BIT1      // Alarm Piezo
-#define     LED_SEC               BIT2      // LED Sekunden
-*/
+
+#define     CONTROL_OUT           P4OUT
+#define     CONTROL_DIR           P4DIR
+#define     CONTROL_IN            P4IN
+#define     CONTROL_DS            P4DS
+#define     TURNON_OPA            BIT0      // switch the op-amp on
+#define     TURNON_RELAY          BIT1      // switch the relay on
+#define     AL1                   BIT2      // Alarm Piezo
+
 #define     CRYSTAL_SEL           P5SEL
 #define     XT2IN                 BIT2
 #define     XT2OUT                BIT3
@@ -72,9 +93,9 @@
 #define     SIGNALS_DS            P7DS
 
 #define     DARK                  BIT0      // Blanking Dunkeltastung
-#define     AL1                   BIT1      // Alarm Piezo
-#define     LED_OSCI_FAULT        BIT2      // LED Oszillator 4MHz schwingt nicht
-#define     LED_SEC               BIT3      // LED Sekunden
+#define     LED_OSCI_FAULT        BIT1      // LED Oszillator 4MHz schwingt nicht
+#define     LED_SEC               BIT2      // LED Sekunden
+#define     LED_MINUS             BIT3      // LED für ein negatives Ergebnis
 #define     LED_DP                BIT7      // LED decimal point
 
 // ADC
@@ -83,12 +104,22 @@
                                                       //See device datasheet for TLV table memory mapping
 #define CALADC12_15V_85C  *((uint16_t *)0x1A1C)   // Temperature Sensor Calibration-85 C
 
+#define CORREC_OFFSET_PT100     3050
+
+#define CALADC12_25V_PT100_00C  398               // Temperature sensor PT100 calibration 0,0 C (100Ω)
+
+#define CALADC12_25V_PT100_80C  1947
+
+#define CALADC12_25V_BATT_1V5  632               // Battery Calibration 1,5V
+
+#define CALADC12_25V_BATT_3V6  2948              // Battery Calibration 3,6V
+
 // TYPEDEF & STRUCTs
 
 // Variablen die "globale" Zusände steuern ----
 // variables that control "global" states
 
-enum
+enum EVE_con_typ
 {
     normal = 0, // (hh:mm)
     view_sec_and_min,
@@ -97,6 +128,8 @@ enum
     view_year,
     view_temp_cpu,
     view_temp_out,
+    view_bright,
+    view_batt,
     change_sec,
     change_min,
     change_h,
@@ -126,6 +159,7 @@ enum ADC_Work
 {
     status_it_is_nothing = 0,
     status_adc_ready,
+    status_adc_pwr_go_on,
     measure_batt_f_contr,
     measure_batt_f_disp,
     measure_bright_f_contr,
@@ -140,6 +174,7 @@ enum ADC_Work
 #define     BRIGHT_F_DISP_READY   BIT3
 #define     TEMP_CPU_F_DISP_READY BIT4
 #define     TEMP_OUT_F_DISP_READY BIT5
+#define     FIRST_ADC_DISPLAY     BIT7
 
 // FUNCTIONS
 /* Initialize CPU and basic variables */

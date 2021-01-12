@@ -12,7 +12,6 @@
 
 extern volatile uint8_t disp_out[4];
 extern const uint16_t disp_pos[2];
-extern uint8_t disp_point;
 extern volatile uint8_t *disp_out_point;
 extern volatile uint16_t  *disp_out_int;
 extern volatile uint8_t disp_out_buf[4];
@@ -22,8 +21,9 @@ extern     int32_t calcu_extension,calcu_extension1;
 
 void InitializeCPU(void)
 {
-    extern int32_t temp_cpu_coefficient;
+    extern int32_t temp_cpu_coefficient, temp_out_coefficient, batt_coefficient;
     int32_t temp_prod;
+
     WDTCTL = WDTPW | WDTHOLD;       // stop watchdog timer
     __enable_interrupt();           // Enable interrupts globally
     temp_prod = CALADC12_15V_85C - CALADC12_15V_30C;
@@ -35,6 +35,11 @@ void InitializeCPU(void)
  * CAL_ADC_T85 - CAL_ADC_T30
  *
  */
+    temp_prod = CALADC12_25V_PT100_80C - CALADC12_25V_PT100_00C;
+    temp_out_coefficient = (int32_t)(80000 - -1000) / temp_prod;
+
+    temp_prod = (int32_t)CALADC12_25V_BATT_3V6 - CALADC12_25V_BATT_1V5;
+    batt_coefficient = (int32_t)(36000 - 15000) / temp_prod;
 }
 
 void InitializePins(void)
@@ -45,9 +50,11 @@ void InitializePins(void)
     BUTTON_IFG   = 0x000;    // P1 IFGs cleared
     BUTTON_IE    = BUTTON_1 | BUTTON_2 | BUTTON_3 | BUTTON_4 | BUTTON_5 | BUTTON_6; // buttonPins interrupt enable
     DISPLAY_DIR  = 0xFF;     // configure P2.x as output
-    SIGNALS_DIR = DARK | AL1 | LED_OSCI_FAULT | LED_SEC | LED_DP;
-    SIGNALS_DS  |= AL1;
-    SIGNALS_OUT |= AL1;
+    SIGNALS_DIR  = DARK | LED_OSCI_FAULT | LED_SEC | LED_DP | LED_MINUS;
+
+    CONTROL_DIR  = TURNON_OPA | TURNON_RELAY | AL1;
+    CONTROL_DS  |= AL1;
+    CONTROL_OUT |= AL1;
 
     VOLTMETER_SEL = U_BAT | U_TEMP | U_LIGTH;
 }
@@ -65,7 +72,7 @@ void Initialize_UCS_and_Crystals(void)
                                                // 1/2 * (243 + 1) * 32768  = 4.000MHz
     __bic_SR_register(SCG0);            // Enable the FLL control loop
 
-    UCSCTL6 |= XCAP_3;                        // Internal load cap
+    UCSCTL6 |= XCAP_1;                        // Internal load cap
     UCSCTL6 = XT2DRIVE_0 | XT1DRIVE_0 ;       // primarily configure XT2 for 4MHz
     UCSCTL6 &= ~XT1OFF;                       // Set XT1 On
     UCSCTL5 = DIVM_0;
@@ -166,14 +173,15 @@ void InitializeADC12(void)
 void StartADCmeasurements(enum ADC_mesure_typ what_mesure)
 {
 
-    switch (what_mesure) // sorted by frequency of the call
+    switch (what_mesure)
+    // sorted by frequency of the call
     {
     case measurement_bright:
         ADC12CTL0 |= ADC12REF2_5V;               // Internal ref = 2.5V
         ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_2;  // ADC i/p ch A2 = brightness sensor (P6.2)
         break;
     case measurement_batt:
-        ADC12CTL0 &= ~ADC12REF2_5V;               // Internal ref = 1.5V
+        ADC12CTL0 |= ADC12REF2_5V;               // Internal ref = 2.5V
         ADC12MCTL0 = ADC12SREF_1 + ADC12INCH_0;   // ADC i/p ch A0 = batteries voltage (P6.0)
         break;
     case measurement_temp_cpu:
@@ -202,51 +210,84 @@ void ADC_scheduler(enum ADC_Work ADC_work)
                                          status_it_is_nothing };
     extern volatile uint16_t adc_out_raw[8];
     extern volatile bool adc_conv_ready;
-    extern uint8_t adc_out_ready;
-    extern uint16_t adc_out_bright_contr, adc_out_bright_f_disp,
-                    adc_out_batt_f_contr, adc_out_batt_f_disp,
-                    adc_out_temp_cpu_f_disp_raw, adc_out_temp_out_f_disp;
+    extern uint8_t  adc_out_ready, adc_power_count;
+    extern uint16_t adc_out_bright_contr,
+            adc_out_bright_f_disp, adc_out_batt_f_contr,
+            adc_out_batt_f_disp_raw, adc_out_temp_cpu_f_disp_raw,
+            adc_out_temp_out_f_disp_raw;
 
     if (ADC_work != status_adc_ready)
     {
-        if (_ADCtask[presentADCtask_point] == status_it_is_nothing) // first round
+        if ((CONTROL_OUT & TURNON_OPA) == 0)
         {
-            _ADCtask[presentADCtask_point] = ADC_work;
-            switch (_ADCtask[presentADCtask_point])
+            if (_ADCtask[presentADCtask_point] == status_it_is_nothing) // first round
             {
-            case measure_bright_f_disp:
-                StartADCmeasurements(measurement_bright);
-                break;
-            case measure_batt_f_contr:
-                StartADCmeasurements(measurement_batt);
-                break;
-            case measure_batt_f_disp:
-                StartADCmeasurements(measurement_batt);
-                break;
-            case measure_bright_f_contr:
-                StartADCmeasurements(measurement_bright);
-                break;
-            case measure_temp_cpu_f_disp:
-                StartADCmeasurements(measurement_temp_cpu);
-                break;
-            case measure_temp_out_f_disp:
-                StartADCmeasurements(measurement_temp_out);
-                break;
-            }
-        }
-        else    // (_ADCtask[presentADCtask_point] == status_it_is_nothing) searching next free memory
-        {
-            for (adc_i = 1; adc_i < 4; adc_i++) // search the next free register; if more measurements, forget it ;-)
-            {
-                if (_ADCtask[(presentADCtask_point + adc_i) & 3] == status_it_is_nothing)
+                _ADCtask[presentADCtask_point] = ADC_work;
+                adc_power_count = 2;
+                CONTROL_OUT |= TURNON_OPA;
+                switch (_ADCtask[presentADCtask_point])
                 {
-                    _ADCtask[(presentADCtask_point + adc_i) & 3] = ADC_work;
-                    break;  // stop the search
+                case measure_batt_f_contr:
+                    CONTROL_OUT |= TURNON_OPA | TURNON_RELAY;
+                    break;
+                case measure_batt_f_disp:
+                    CONTROL_OUT |= TURNON_OPA | TURNON_RELAY;
+                    break;
+                }
+            }
+            else // (_ADCtask[presentADCtask_point] == status_it_is_nothing) searching next free memory
+            {
+                for (adc_i = 1; adc_i < 4; adc_i++) // search the next free register; if more measurements, forget it ;-)
+                {
+                    if (_ADCtask[(presentADCtask_point + adc_i) & 3] == status_it_is_nothing)
+                    {
+                        _ADCtask[(presentADCtask_point + adc_i) & 3] = ADC_work;
+                        break;  // stop the search
+                    }
                 }
             }
         }
+        else // (CONTROL_OUT && TURNON_OPA) != 0
+        {
+            if (adc_power_count != 0)
+            {
+                if (((_ADCtask[presentADCtask_point] == measure_batt_f_contr)
+                      || (_ADCtask[presentADCtask_point] == measure_batt_f_disp))
+                        && !(CONTROL_OUT & TURNON_RELAY))
+                {
+                    CONTROL_OUT |= TURNON_RELAY;
+                    adc_power_count = 2;
+                }
+                else
+                    adc_power_count--;
+            }
+            else
+            {
+                switch (_ADCtask[presentADCtask_point])
+                {
+                case measure_bright_f_disp:
+                    StartADCmeasurements(measurement_bright);
+                    break;
+                case measure_batt_f_contr:
+                    StartADCmeasurements(measurement_batt);
+                    break;
+                case measure_batt_f_disp:
+                    StartADCmeasurements(measurement_batt);
+                    break;
+                case measure_bright_f_contr:
+                    StartADCmeasurements(measurement_bright);
+                    break;
+                case measure_temp_cpu_f_disp:
+                    StartADCmeasurements(measurement_temp_cpu);
+                    break;
+                case measure_temp_out_f_disp:
+                    StartADCmeasurements(measurement_temp_out);
+                    break;
+                }  // switch
+            } // adc_power_count != 0
+        } // (CONTROL_OUT && TURNON_OPA) != 0
     }
-    else    // (ADC_work != status_adc_ready)
+    else    // (ADC_work == status_adc_ready)
     {
         adc_conv_ready = false;
         adc_sum_raw = 0;
@@ -254,8 +295,7 @@ void ADC_scheduler(enum ADC_Work ADC_work)
         {
             adc_sum_raw += adc_out_raw[adc_i - 1];
         }
-        if (adc_sum_raw & 4)
-            adc_sum_raw += 8; // a simple rounding, because no floating point operation was implemented
+        if (adc_sum_raw & 4) adc_sum_raw += 8; // a simple rounding, because no floating point operation was implemented
         adc_sum_raw >>= 3;  // eql. div 8
         switch (_ADCtask[presentADCtask_point])
         {
@@ -272,7 +312,7 @@ void ADC_scheduler(enum ADC_Work ADC_work)
             adc_out_ready |= BRIGHT_F_DISP_READY;
             break;
         case measure_batt_f_disp:
-            adc_out_batt_f_disp = adc_sum_raw;
+            adc_out_batt_f_disp_raw = adc_sum_raw;
             adc_out_ready |= BATT_F_DISP_READY;
             break;
         case measure_temp_cpu_f_disp:
@@ -280,7 +320,7 @@ void ADC_scheduler(enum ADC_Work ADC_work)
             adc_out_ready |= TEMP_CPU_F_DISP_READY;
             break;
         case measure_temp_out_f_disp:
-            adc_out_temp_out_f_disp = adc_sum_raw;
+            adc_out_temp_out_f_disp_raw = adc_sum_raw;
             adc_out_ready |= TEMP_OUT_F_DISP_READY;
             break;
         }
@@ -289,34 +329,32 @@ void ADC_scheduler(enum ADC_Work ADC_work)
         presentADCtask_point &= 3;
         if (_ADCtask[presentADCtask_point] != status_it_is_nothing)
         {
+            adc_power_count = 2;
+            CONTROL_OUT |= TURNON_OPA; // the Vcc for the analog circuit switch OFF in ADC-ISR
             switch (_ADCtask[presentADCtask_point])
             {
-            case measure_bright_f_disp:
-                StartADCmeasurements(measurement_bright);
-                break;
             case measure_batt_f_contr:
-                StartADCmeasurements(measurement_batt);
+                CONTROL_OUT |=  TURNON_RELAY;
                 break;
             case measure_batt_f_disp:
-                StartADCmeasurements(measurement_batt);
-                break;
-            case measure_bright_f_contr:
-                StartADCmeasurements(measurement_bright);
-                break;
-            case measure_temp_cpu_f_disp:
-                StartADCmeasurements(measurement_temp_cpu);
-                break;
-            case measure_temp_out_f_disp:
-                StartADCmeasurements(measurement_temp_out);
+                CONTROL_OUT |=  TURNON_RELAY;
                 break;
             }
         }
+        else
+        {
+            CONTROL_OUT &= ~(TURNON_OPA | TURNON_RELAY);
+        }
     }
 }
+/*
+ * end ADC_scheduler
+ */
 
 void GenerateDispOut(void)
 {
     extern volatile uint8_t eve_condition;
+    extern uint8_t disp_point;
     extern uint16_t adc_out_bright_contr, adc_out_bright_f_disp,
                     adc_out_batt_f_contr, adc_out_batt_f_disp,
                     adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
@@ -329,6 +367,7 @@ void GenerateDispOut(void)
     }
     else
     {   */
+    disp_point &= ~(DIGT_PNT1 | DIGT_PNT2 | DIGT_PNT3 | DIGT_PNT4 | MINUS_PNT);
     disp_out_point = disp_out_buf;
     switch (eve_condition)
     {
@@ -373,10 +412,19 @@ void GenerateDispOut(void)
         break;
     case view_temp_cpu:
 //        Int2str_m(adc_out_temp_cpu_f_disp, &disp_out);
-        Int2str_m(calcu_extension, &disp_out);
+        Int2str_m(adc_out_temp_cpu_f_disp, &disp_out);
+        disp_point |= DIGT_PNT2;
         break;
     case view_temp_out:
         Int2str_m(adc_out_temp_out_f_disp, &disp_out);
+        disp_point |= DIGT_PNT2;
+        break;
+    case view_batt:
+        Int2str_m(adc_out_batt_f_disp, &disp_out);
+        disp_point |= DIGT_PNT3;
+        break;
+    case view_bright:
+        Int2str_m(adc_out_bright_f_disp, &disp_out);
         break;
     }
     *disp_out_int &= 0x0F0F;
@@ -394,42 +442,45 @@ void Int2str_m(int16_t number_int,volatile uint8_t *disp_local)
 // convert a integer with 9999 to BCD / char[4] array
 // !! this function is for MCUs and has no ERRORcontrol !!
 {
+    extern uint8_t disp_point;
     int16_t tempInt;
 
     if (number_int < 0)
     {
 //        SIGNALS_OUT |= LED_OSCI_FAULT;
+        disp_point |= MINUS_PNT;
         tempInt = number_int * (-1);
     }
     else
     {
 //        SIGNALS_OUT &= ~LED_OSCI_FAULT;
         tempInt = number_int;
+        disp_point &= ~MINUS_PNT;
     }
 
     if (tempInt > 999)
     {
-        *(disp_local + 3) = tempInt / 1000;
+        *(disp_local + 0) = tempInt / 1000;
         tempInt = tempInt % 1000;
     }
     else
-        *(disp_local + 3) = 0;
+        *(disp_local + 0) = 0;
     if (tempInt > 99)
     {
-        *(disp_local + 2) = tempInt / 100;
+        *(disp_local + 1) = tempInt / 100;
         tempInt %= 100;
     }
     else
-        *(disp_local + 2) = 0;
+        *(disp_local + 1) = 0;
     if (tempInt > 9)
     {
-        *(disp_local + 1) = tempInt / 10;
-        *disp_local = tempInt % 10;
+        *(disp_local + 2) = tempInt / 10;
+        *(disp_local + 3) = tempInt % 10;
     }
     else
     {
-        *(disp_local + 1) = 0;
-        *disp_local = tempInt;
+        *(disp_local + 2) = 0;
+        *(disp_local + 3) = tempInt;
     }
 }
 

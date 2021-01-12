@@ -3,9 +3,14 @@
 #include <string.h>
 #include <msp430.h>
 #include <msp430f5529.h>
+// !!!! Hardwareversion of PCB
+#define HW_Ver1_0
+//
 #include <digi_clock.h>
 #include <digi_clock_isr.h>
 #include <digi_clock_btn_menu.h>
+#include <digi_clock_fkt.h>
+
 
 // Variables global clock management
 
@@ -14,17 +19,17 @@
     volatile uint8_t is_sec,is_msec,is_msec2, is_100ms, is_100ms2, is_300ms = 0;
 
     // Which value will be displayed
-    volatile uint8_t eve_condition = view_temp_out;
+    volatile enum EVE_con_typ eve_condition = view_batt;
 
 // Variables for display management
     // to fast find the pin-quartet on display-port
-    unsigned const int disp_pos[2] = {0x2010,0x8040};
+    unsigned const int disp_pos[2] = {0x8040,0x2010};
     // display-memory position and BCD-number
-    volatile uint8_t disp_out[4] = {0x10,0x21,0x42,0x84};
+    volatile uint8_t disp_out[4] = {0x40,0x81,0x12,0x24};
     // display-memory decimal point
-    volatile uint8_t disp_point = 0x2;
+    volatile uint8_t disp_point = DIGT_PNT1;
     // for fast overlay-functions on the display-memory
-    volatile uint16_t  *disp_out_int = &disp_out;
+    volatile uint16_t  *disp_out_int = disp_out;
     volatile void *disp_out_int_ptr = &disp_out;
     // to reduce flicker save the display in this memory
     volatile uint8_t disp_out_buf[4];
@@ -46,13 +51,15 @@
 // Variables for ADC12
 volatile uint16_t adc_out_raw[8];
 uint16_t adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
-        adc_out_batt_f_disp, adc_out_temp_cpu_f_disp_raw;
+        adc_out_batt_f_disp, adc_out_batt_f_disp_raw, adc_out_temp_cpu_f_disp_raw,
+        adc_out_temp_out_f_disp_raw;
 int16_t adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
 volatile bool adc_conv_ready;
-uint8_t  adc_out_ready = 0;  // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
+uint8_t  adc_out_ready = 0; // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
+uint8_t  adc_power_count = 0; // if i switch on the power for the analog circuit
 uint16_t temp_s_sum;
-int32_t  temp_cpu_coefficient; // precalculated factor for CPU-temperature measurement
-int32_t calcu_extension;
+int32_t  temp_cpu_coefficient, temp_out_coefficient, batt_coefficient; // precalculated factor for CPU-temperature measurement
+int32_t  calcu_extension;
 
 /**
  * main.c
@@ -92,38 +99,81 @@ int main(void)
             if (is_sec != 0)
             {
                 is_sec--;
+//                SIGNALS_OUT    ^= DARK;                            // Toggle P7.3
+//                CONTROL_OUT ^= TURNON_RELAY;
+                switch (eve_condition)
+                {
+                case normal:
+                    GenerateDispOut();
+                    break;
+                case view_sec_and_min:
+                    GenerateDispOut();
+                    break;
+                case view_temp_out:
 //                ADC_scheduler(measure_bright_f_contr);
-                ADC_scheduler(measure_temp_out_f_disp);
+                    ADC_scheduler(measure_temp_out_f_disp);
+                    break;
+                case view_temp_cpu:
+                    ADC_scheduler(measure_temp_cpu_f_disp);
+                    break;
+                case view_batt:
+                    ADC_scheduler(measure_batt_f_disp);
+                    break;
+                case view_bright:
+                    ADC_scheduler(measure_bright_f_disp);
+                    break;
+                }
                 //                StartADCmeasurements(measurement_bright);
-//                SIGNALS_OUT ^= AL1;
+//                CONTROL_OUT ^= AL1;
             }
-            if (is_100ms != 0)
+//-----///////////////
+            if (is_100ms != 0)  // is derived from 4MHz clock
             {
                 is_100ms--;
+                if (adc_power_count != 0)
+                {
+                    ADC_scheduler(status_adc_pwr_go_on);
+                }
                 if (adc_out_ready & TEMP_CPU_F_DISP_READY)
                 {
 //                    i = CALADC12_15V_30C;
                     __no_operation();
-                    calcu_extension = (int32_t)((int32_t)adc_out_temp_cpu_f_disp_raw - (int32_t)CALADC12_15V_30C);
+/*                    calcu_extension = (int32_t)((int32_t)adc_out_temp_cpu_f_disp_raw - (int32_t)CALADC12_15V_30C);
                     calcu_extension *= temp_cpu_coefficient;
                     calcu_extension += 30000;
                     calcu_extension /= 100;
-                    adc_out_temp_cpu_f_disp = calcu_extension;
+                    adc_out_temp_cpu_f_disp = calcu_extension; */
 /*                            (uint16_t) (((int32_t) () * temp_cpu_coefficient
                                     + 30000) / 100); */
+                    calcu_temp_cpu_to_int();
                     GenerateDispOut();
                     adc_out_ready &= ~TEMP_CPU_F_DISP_READY;
                 }
                 if (adc_out_ready & TEMP_OUT_F_DISP_READY)
                 {
+                    calcu_temp_out_to_int();
                     GenerateDispOut();
+                    adc_out_ready &= ~TEMP_OUT_F_DISP_READY;
                 }
-            }
-            if (is_100ms2 != 0)
+                if (adc_out_ready & BATT_F_DISP_READY)
+                {
+                    calcu_batt_to_int();
+                    GenerateDispOut();
+                    adc_out_ready &= ~BATT_F_DISP_READY;
+                }
+                if (adc_out_ready & BRIGHT_F_DISP_READY)
+                {
+                    GenerateDispOut();
+                    adc_out_ready &= ~BRIGHT_F_DISP_READY;
+                }
+            } // if (is_100ms != 0)
+//-----///////////////
+            if (is_100ms2 != 0)  // is derived from 32kHz clock
             {
                 is_100ms2--;
                 btn_to_event();
-            }
+            } // if (is_100ms2 != 0)
+//-----///////////////
             if (is_300ms != 0)
             {
                 is_300ms--;
@@ -133,6 +183,7 @@ int main(void)
             }
 //            for (i = 4000; i > 0; i--)
             ;     // delay
+//------///////////////
             if (adc_conv_ready)
             {
                 ADC_scheduler(status_adc_ready);
