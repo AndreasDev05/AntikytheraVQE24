@@ -18,12 +18,25 @@
 #define     BUTTON_IES            P1IES
 #define     BUTTON_IFG            P1IFG
 #define     BUTTON_REN            P1REN
-#define     BUTTON_1              BIT0      // Switch left
-#define     BUTTON_2              BIT1      // Switch right
-#define     BUTTON_3              BIT2      // Switch up
-#define     BUTTON_4              BIT3      // Switch down
+
+// #ifdef HW_Ver1_2
+#define     BUTTON_1              BIT0      // Switch down
+#define     BUTTON_2              BIT1      // Switch up
+#define     BUTTON_3              BIT2      // Switch left
+#define     BUTTON_4              BIT3      // Switch right
 #define     BUTTON_5              BIT4      // Menu
 #define     BUTTON_6              BIT5      // Alarm off
+//#endif
+
+/*#ifdef HW_Ver1_0
+#define     BUTTON_1              BIT0      // Switch down
+#define     BUTTON_2              BIT2      // Switch up
+#define     BUTTON_3              BIT4      // Switch left
+#define     BUTTON_4              BIT6      // Switch right
+#define     BUTTON_5              BIT1      // Menu
+#define     BUTTON_6              BIT3      // Alarm off
+#endif  */
+
 #define     PWR_UP                BIT7      // 5 Volt ready
 
 #define     BTN_PRESS_SHORT       BIT0

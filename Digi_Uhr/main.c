@@ -3,10 +3,14 @@
 #include <string.h>
 #include <msp430.h>
 #include <msp430f5529.h>
+// !!!! Hardwareversion of PCB
+#define HW_Ver1_0
+//
 #include <digi_clock.h>
 #include <digi_clock_isr.h>
 #include <digi_clock_btn_menu.h>
 #include <digi_clock_fkt.h>
+
 
 // Variables global clock management
 
