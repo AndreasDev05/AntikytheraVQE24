@@ -10,14 +10,6 @@
 #include <msp430f5529.h>
 #include "digi_clock.h"
 
-extern volatile uint8_t disp_out[4];
-extern const uint16_t disp_pos[2];
-extern volatile uint8_t *disp_out_point;
-extern volatile uint16_t  *disp_out_int;
-extern volatile uint8_t disp_out_buf[4];
-extern volatile uint16_t  *disp_out_buf_int;
-extern volatile void *disp_out_buf_int_ptr;
-extern     int32_t calcu_extension,calcu_extension1;
 
 void InitializeCPU(void)
 {
@@ -109,6 +101,14 @@ bool InitializeXT2(bool osci_on)           // the 4MHz-crystal for the mainclock
         UCSCTL6 |= XT2OFF;                 // Set XT2 Off
         return (true);
     }
+}
+
+void InitializeRTC(void)            // Initialize the real time clock
+{
+RTCCTL1 = RTCSSEL_0 | RTCMODE_H | RTCBCD_H;
+// RTCCTL23 = RTCCALF_3; //PIN 2.6 toggels with 1Hz
+RTCSEC = 0x022; // starts on sec 22
+RTCMIN = 0x022; // starts on min 22
 }
 
 void InitializeTimerA(void)
@@ -354,10 +354,18 @@ void ADC_scheduler(enum ADC_Work ADC_work)
 void GenerateDispOut(void)
 {
     extern volatile uint8_t eve_condition;
-    extern uint8_t disp_point;
+    extern uint8_t disp_point, disp_point_blink;
     extern uint16_t adc_out_bright_contr, adc_out_bright_f_disp,
                     adc_out_batt_f_contr, adc_out_batt_f_disp,
                     adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
+    extern volatile uint8_t disp_out[4];
+    extern const uint16_t disp_pos[2];
+    extern volatile uint8_t *disp_out_point;
+    extern volatile uint16_t *disp_out_int;
+    extern volatile uint8_t disp_out_buf[4];
+    extern volatile uint16_t  *disp_out_buf_int;
+    extern volatile void *disp_out_buf_int_ptr;
+
 /*    if ((my_display_flag.light_blink)&((time_ary[e_sec]& 1) != 0 ))
     {
         disp_out[3] = 0xF;
@@ -367,7 +375,7 @@ void GenerateDispOut(void)
     }
     else
     {   */
-    disp_point &= ~(DIGT_PNT1 | DIGT_PNT2 | DIGT_PNT3 | DIGT_PNT4 | MINUS_PNT);
+    disp_point &= ~(DIGT_PNT1 | DIGT_PNT2 | DIGT_PNT3 | DIGT_PNT4 | MINUS_PNT | SEC_PNT);
     disp_out_point = disp_out_buf;
     switch (eve_condition)
     {
@@ -388,6 +396,8 @@ void GenerateDispOut(void)
         disp_out[2] = RTCSEC >> 4;
         disp_out[1] = RTCMIN & 0x0F;
         disp_out[0] = RTCMIN >> 4;
+        if (RTCSEC & BIT0) disp_point |= SEC_PNT;
+//        disp_point_blink |= SEC_PNT;
         break;
     case view_day_and_month:
         disp_out[3] = RTCDAY & 0x0F;
@@ -486,6 +496,8 @@ void Int2str_m(int16_t number_int,volatile uint8_t *disp_local)
 
 void Char2str_m(uint8_t number_char, uint8_t *disp_local)
 {
+    extern volatile uint8_t disp_out[4];
+
     uint8_t tempChar;
 
     *(disp_out + 3) = 0; // The thousand digit is always 0 anyway.
@@ -511,6 +523,8 @@ void Char2str_m(uint8_t number_char, uint8_t *disp_local)
 
 void Char2str_d(uint8_t number_char, uint8_t *disp_local, bool first_digits)
 {
+    extern volatile uint8_t disp_out[4];
+
     if (first_digits)
     {
         if (number_char > 9)

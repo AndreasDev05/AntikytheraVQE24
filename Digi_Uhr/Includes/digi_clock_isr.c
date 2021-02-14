@@ -80,7 +80,7 @@ __interrupt void TIMER0_A1_ISR(void)
 #pragma vector=TIMER1_A0_VECTOR
 __interrupt void TIMER1_A0_ISR(void)
 {
-    extern uint8_t disp_point;
+    extern uint8_t disp_point, disp_point_blink;
            uint8_t temp_DP_mask;
 
     TA1CCR0         += TIME_PERIOD_DIGT;
@@ -105,6 +105,14 @@ __interrupt void TIMER1_A0_ISR(void)
     {
         SIGNALS_OUT &= ~LED_MINUS;
     }
+    if (disp_point & SEC_PNT)
+    {
+        SIGNALS_OUT |= LED_SEC;
+    }
+    else
+    {
+        SIGNALS_OUT &= ~LED_SEC;
+    }
 //    if (disp_count < 3) disp_count++; else disp_count = 0;
     disp_count++;
     disp_count &= 0x03;
@@ -125,7 +133,7 @@ __interrupt void TIMER1_A1_ISR(void)
     case 2:
         TA1CCTL1 &= ~CCIE;             // CCR1 interrupt disabled
 //        SIGNALS_OUT &= ~LED_SEC;      // switch P7.3 off
-//        SIGNALS_OUT    &= ~DARK;
+        SIGNALS_OUT    &= ~(DARK | LED_SEC | LED_MINUS);
         break;
     case 4:
         TA1CCR2 += TIME_PERIOD_100ms;  // Add Offset to CCR3
@@ -193,37 +201,32 @@ __interrupt void PORT1_ISR(void)
     extern volatile uint8_t btn_is_int_set;
 //  temp_p2 = BUTTON_IFG & BUTTON_2;
     if ((P1IFG & BUTTON_1) > 0) {
-      btn_is_int_set |= BUTTON_1;
+      btn_is_int_set |= BUTTON_down;
       BUTTON_IFG  &=  ~BUTTON_1;
     }
 
     if ((P1IFG & BUTTON_2) > 0) {
-      btn_is_int_set |= BUTTON_2;
+      btn_is_int_set |= BUTTON_up;
       BUTTON_IFG  &=  ~BUTTON_2;
     }
 
     if ((P1IFG & BUTTON_3) > 0) {
-      btn_is_int_set |= BUTTON_3;
+      btn_is_int_set |= BUTTON_left;
       BUTTON_IFG  &=  ~BUTTON_3;
     }
 
     if ((P1IFG & BUTTON_4) > 0) {
-      btn_is_int_set |= BUTTON_4;
-      BUTTON_IFG  &=  ~BUTTON_4;
-    }
-
-    if ((P1IFG & BUTTON_4) > 0) {
-      btn_is_int_set |= BUTTON_4;
+      btn_is_int_set |= BUTTON_right;
       BUTTON_IFG  &=  ~BUTTON_4;
     }
 
     if ((P1IFG & BUTTON_5) > 0) {
-      btn_is_int_set |= BUTTON_5;
+      btn_is_int_set |= BUTTON_mode;
       BUTTON_IFG  &=  ~BUTTON_5;
     }
 
     if ((P1IFG & BUTTON_6) > 0) {
-      btn_is_int_set |= BUTTON_6;
+      btn_is_int_set |= BUTTON_alarm;
       BUTTON_IFG  &=  ~BUTTON_6;
     }
 

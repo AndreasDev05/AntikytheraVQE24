@@ -9,6 +9,7 @@
 #include <digi_clock.h>
 #include <digi_clock_isr.h>
 #include <digi_clock_btn_menu.h>
+#include <digi_clock_alarm_fkt.h>
 #include <digi_clock_fkt.h>
 
 
@@ -17,17 +18,18 @@
 // Variablen in den Interruptfkt. -----
     volatile bool is_pwr_good = true;
     volatile uint8_t is_sec,is_msec,is_msec2, is_100ms, is_100ms2, is_300ms = 0;
+    uint8_t old_min, old_hour, old_day = 1;
 
     // Which value will be displayed
-    volatile enum EVE_con_typ eve_condition = view_batt;
+    volatile enum EVE_con_typ eve_condition = view_sec_and_min;
 
 // Variables for display management
     // to fast find the pin-quartet on display-port
     unsigned const int disp_pos[2] = {0x8040,0x2010};
     // display-memory position and BCD-number
     volatile uint8_t disp_out[4] = {0x40,0x81,0x12,0x24};
-    // display-memory decimal point
-    volatile uint8_t disp_point = DIGT_PNT1;
+    // display-memory decimal point and other LEDs
+    volatile uint8_t disp_point = DIGT_PNT1, disp_point_blink;
     // for fast overlay-functions on the display-memory
     volatile uint16_t  *disp_out_int = disp_out;
     volatile void *disp_out_int_ptr = &disp_out;
@@ -47,6 +49,19 @@
     uint16_t   btn_counter[6] = {0,0,0,0,0,0};
     uint8_t    btn_event[6] = {0,0,0,0,0,0};
     void const *btn_event_int_ptr = (uint16_t *)&btn_event[0]; // later used 16 bit integer values are used to accelerate the comparison.
+    const uint8_t btn_adaptation[] = {BUTTON_1,BUTTON_2,BUTTON_3,BUTTON_4,BUTTON_5,BUTTON_6};
+
+// Variables for alarm-logic
+    uint8_t     alarm_start_flags = 0;
+    const uint8_t alarm_intv1[] = {1,1,9};  // Stepcounter, ON-Inv, OFF-Inv, ... in 0,1sec
+    const uint8_t alarm_intv2[] = {3,1,3,1,7};
+    const uint8_t alarm_intv3[] = {3,1,1,1,5};
+    const uint8_t alarm_intvT[] = {3,6,11,2,9,1,4,17,1,3,1,4,5,1,1,1};
+/*                                 |      | | |
+                                   |      | | Count of beeper ON in 100msec
+                                   |      | Count of beeper OFF in 100msec
+                                   |      Count of Bytes for the melodies (minus 1)
+                                   Byte 1-3 Offset too melodies */
 
 // Variables for ADC12
 volatile uint16_t adc_out_raw[8];
@@ -76,11 +91,7 @@ int main(void)
 // Initialize UCS
     Initialize_UCS_and_Crystals();
 // Initialize the real time clock
-    RTCCTL1 = RTCSSEL_0 | RTCMODE_H | RTCBCD_H;
-    // RTCCTL23 = RTCCALF_3; //PIN 2.6 toggels with 1Hz
-    RTCSEC = 0x022; // starts on sec 22
-    RTCMIN = 0x022; // starts on sec 22
-
+    InitializeRTC();
 // Initialize ADC12
     InitializeADC12();
 
@@ -103,12 +114,6 @@ int main(void)
 //                CONTROL_OUT ^= TURNON_RELAY;
                 switch (eve_condition)
                 {
-                case normal:
-                    GenerateDispOut();
-                    break;
-                case view_sec_and_min:
-                    GenerateDispOut();
-                    break;
                 case view_temp_out:
 //                ADC_scheduler(measure_bright_f_contr);
                     ADC_scheduler(measure_temp_out_f_disp);
@@ -122,6 +127,25 @@ int main(void)
                 case view_bright:
                     ADC_scheduler(measure_bright_f_disp);
                     break;
+                }
+                if (RTCMIN != old_min)
+                {
+                    old_min = RTCMIN;
+//                    alarm_start_flags |= ALARM_BEEP;
+/*                    if (RTCMIN == 0x23) alarm_start_flags |= ALARM_LEV02;
+                    if (RTCMIN == 0x24)
+                    {
+                        alarm_start_flags &= ~ALARM_LEV02;
+                        alarm_start_flags |= ALARM_STOP;
+                    }   */
+                    if (RTCHOUR != old_hour)
+                    {
+                        old_hour = RTCHOUR;
+                        if (RTCDAY != old_day)
+                        {
+
+                        }
+                    }
                 }
                 //                StartADCmeasurements(measurement_bright);
 //                CONTROL_OUT ^= AL1;
@@ -172,10 +196,25 @@ int main(void)
             {
                 is_100ms2--;
                 btn_to_event();
+                if ((alarm_start_flags & ALARM_BEEP) != 0)
+                    AlarmBeep();
+                if (alarm_start_flags & (ALARM_STOP | ALARM_LEV01 | ALARM_LEV02 | ALARM_LEV03 | ALARM_LEV04))
+                    AlarmBell();
+//                if (my_alarm_flags.alarm_on == 1) AlarmBell();
+
             } // if (is_100ms2 != 0)
 //-----///////////////
             if (is_300ms != 0)
             {
+                switch (eve_condition)
+                {
+                case normal:
+                    GenerateDispOut();
+                    break;
+                case view_sec_and_min:
+                    GenerateDispOut();
+                    break;
+                }
                 is_300ms--;
                 disp_brightness += 10;
                 if (disp_brightness > TIME_PERIOD_DIGT - 10)

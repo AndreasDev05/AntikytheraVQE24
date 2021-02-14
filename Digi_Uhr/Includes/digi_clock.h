@@ -19,24 +19,32 @@
 #define     BUTTON_IFG            P1IFG
 #define     BUTTON_REN            P1REN
 
-// #ifdef HW_Ver1_2
+/*/ #ifdef HW_Ver1_2
 #define     BUTTON_1              BIT0      // Switch down
 #define     BUTTON_2              BIT1      // Switch up
 #define     BUTTON_3              BIT2      // Switch left
 #define     BUTTON_4              BIT3      // Switch right
 #define     BUTTON_5              BIT4      // Menu
 #define     BUTTON_6              BIT5      // Alarm off
-//#endif
+#endif */
 
-/*#ifdef HW_Ver1_0
+// #ifdef HW_Ver1_0
 #define     BUTTON_1              BIT0      // Switch down
 #define     BUTTON_2              BIT2      // Switch up
 #define     BUTTON_3              BIT4      // Switch left
 #define     BUTTON_4              BIT6      // Switch right
 #define     BUTTON_5              BIT1      // Menu
 #define     BUTTON_6              BIT3      // Alarm off
-#endif  */
+//#endif
 
+#define     BUTTON_down           BIT0      // Switch down
+#define     BUTTON_up             BIT1      // Switch up
+#define     BUTTON_left           BIT2      // Switch left
+#define     BUTTON_right          BIT3      // Switch right
+#define     BUTTON_mode           BIT4      // Menu
+#define     BUTTON_alarm          BIT5      // Alarm off
+
+#define     BUTTON_last           BIT5
 #define     PWR_UP                BIT7      // 5 Volt ready
 
 #define     BTN_PRESS_SHORT       BIT0
@@ -63,6 +71,8 @@
 #define     DIGT_PNT4             BIT2
 #define     SEC_PNT               BIT4
 #define     MINUS_PNT             BIT5
+#define     SEC_PNT_RESULT        BIT6
+#define     MINUS_PNT_RESULT      BIT7
 
 #define     SERIAL_SEL            P3SEL
 #define     TXD                   BIT3      // TXD on P3.3
@@ -176,6 +186,17 @@ enum ADC_Work
 #define     TEMP_OUT_F_DISP_READY BIT5
 #define     FIRST_ADC_DISPLAY     BIT7
 
+#define     ALARM_BEEP            BIT0
+#define     ALARM_LEV01           BIT1
+#define     ALARM_LEV02           BIT2
+#define     ALARM_LEV03           BIT3
+#define     ALARM_LEV04           BIT4
+#define     ALARM_ISR_FLAG        BIT6
+#define     ALARM_STOP            BIT7
+
+#define     BEEPER_ON             CONTROL_OUT &= ~AL1
+#define     BEEPER_OFF            CONTROL_OUT |= AL1
+
 // FUNCTIONS
 /* Initialize CPU and basic variables */
 void InitializeCPU(void);
@@ -184,6 +205,7 @@ void InitializePins(void);
 void Initialize_UCS_and_Crystals(void);
 /* the 4MHz-crystal for the mainclock */
 bool InitializeXT2(bool osci_on);
+void InitializeRTC(void);
 void InitializeTimerA(void);
 void InitializeADC12(void);
 
