@@ -178,6 +178,16 @@ enum ADC_Work
     measure_temp_out_f_disp,
 };
 
+enum FLASH_write_data
+{
+    write_date,
+    write_RTC_correction,
+    write_ALARM1,
+    write_ALARM2,
+    write_ALARM3,
+    write_ALARM4,
+    write_ALARM5,
+};
 #define     BATT_F_CONTR_READY    BIT0
 #define     BATT_F_DISP_READY     BIT1
 #define     BRIGHT_F_CONTR_READY  BIT2
@@ -247,5 +257,60 @@ void ADC_scheduler(enum ADC_Work ADC_work);
 /* Interval zum abfragen der Schalter 0.5ms */
 #define     TIME_PERIOD_300ms   0x01555
 
+/*  Flash-variables
+
+    array-bytes
+*/
+
+#define     FLASH_DATA_VER  0
+
+#define     FLASH_VER       0
+#define     YEAR_LOW        1
+#define     YEAR_LOW        2
+#define     MOUNTS          3
+#define     FLASH_DAY       4
+#define     RTC_CORRETION   5
+#define     ALARM1_DAYS     6
+#define     ALARM1_MIN      7
+#define     ALARM1_HOUR     8
+#define     ALARM1_DAY      9
+#define     ALARM1_MOUNTH   10
+#define     ALARM2_DAYS     11
+#define     ALARM2_MIN      12
+#define     ALARM2_HOUR     14
+#define     ALARM2_DAY      15
+#define     ALARM2_MOUNTH   16
+#define     ALARM3_DAYS     17
+#define     ALARM3_MIN      18
+#define     ALARM3_HOUR     19
+#define     ALARM3_DAY      20
+#define     ALARM3_MOUNTH   21
+#define     ALARM4_DAYS     22
+#define     ALARM4_MIN      23
+#define     ALARM4_HOUR     24
+#define     ALARM4_DAY      25
+#define     ALARM4_MOUNTH   26
+#define     ALARM5_DAYS     27
+#define     ALARM5_MIN      28
+#define     ALARM5_HOUR     29
+#define     ALARM5_DAY      30
+#define     ALARM5_MOUNTH   31
+
+//      alarm_days_bits
+
+#define     A_MONDAY        Bit0
+#define     A_THUSDAY       Bit1
+#define     A_WEDNSDAY      Bit2
+#define     A_THURSDAY      Bit3
+#define     A_FRIDAY        Bit4
+#define     A_SATURDAY      Bit5
+#define     A_SUNDAY        Bit6
+#define     A_ACTIV         Bit7
+
+//      segment definition
+
+#define FLASH_SEGMENT_A  *((uint8_t *)0x1980)
+
+#define FLASH_SEGMENT_C  *((uint8_t *)0x1880)
 
 #endif /* INCLUDES_DIGI_CLOCK_H_ */

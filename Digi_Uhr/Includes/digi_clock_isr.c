@@ -14,21 +14,9 @@
 
 // Variablen in den Interruptfkt. -----
 // Variables for display management
-    extern volatile const uint16_t disp_pos[4];
-    extern volatile uint8_t disp_out[4];
-    extern volatile uint16_t  *disp_out_int;
     // to reduce flicker save the display in this memory
-    extern volatile uint8_t disp_out_buf[4];
     // pointer to the active displaymemory
-    extern volatile uint8_t *disp_out_point;
-    extern volatile uint8_t disp_count;
-    // the brightness of the display: it is recommended to use values between 10 and "TIME_PERIOD_DIGT"-10.
-    extern volatile uint16_t  disp_brightness;  // brightness
 
-// Variables for ADC12
-    extern volatile uint16_t adc_out_raw[8];
-    extern volatile uint8_t temp_t_count;
-    extern bool adc_conv_ready;    // ready
 
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void TIMER0_A0_ISR(void)
@@ -81,7 +69,13 @@ __interrupt void TIMER0_A1_ISR(void)
 __interrupt void TIMER1_A0_ISR(void)
 {
     extern uint8_t disp_point, disp_point_blink;
-           uint8_t temp_DP_mask;
+    extern volatile uint8_t *disp_out_point;
+    extern volatile uint8_t disp_count;
+
+// the brightness of the display: it is recommended to use values between 10 and "TIME_PERIOD_DIGT"-10.
+   extern volatile uint16_t  disp_brightness;  // brightness
+
+   uint8_t temp_DP_mask;
 
     TA1CCR0         += TIME_PERIOD_DIGT;
 //    SIGNALS_OUT    |= LED_SEC;                            // switch P7.3 on
@@ -158,6 +152,9 @@ __interrupt void TIMER1_A1_ISR(void)
 #pragma vector=ADC12_VECTOR
 __interrupt void ADC12ISR (void)
 {
+    // Variables for ADC12
+  extern volatile uint16_t adc_out_raw[8];
+  extern bool adc_conv_ready;    // ready
   static uint8_t adc_m_count = 8;
   switch(__even_in_range(ADC12IV,34))
   {

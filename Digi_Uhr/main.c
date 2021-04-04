@@ -8,6 +8,7 @@
 //
 #include <digi_clock.h>
 #include <digi_clock_isr.h>
+#include <digi_clock_flash.h>
 #include <digi_clock_btn_menu.h>
 #include <digi_clock_alarm_fkt.h>
 #include <digi_clock_fkt.h>
