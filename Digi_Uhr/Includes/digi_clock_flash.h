@@ -13,10 +13,11 @@
 #define INCLUDES_DIGI_CLOCK_FLASH_H_
 
 void FlashWrite(void);
+
 void FlashAtomWrite(void);
 
 void FlashDeleteBlock(void);
 
-void FlashInital(void);
+void InitialVarWithFlash(void);
 
 #endif /* INCLUDES_DIGI_CLOCK_FLASH_H_ */

@@ -16,6 +16,10 @@ void InitializeCPU(void)
     extern int32_t temp_cpu_coefficient, temp_out_coefficient, batt_coefficient;
     int32_t temp_prod;
 
+
+    char * Flash_ptr;                         // Initialize Flash pointer
+    Flash_ptr = (char *) 0x1880;
+
     WDTCTL = WDTPW | WDTHOLD;       // stop watchdog timer
     __enable_interrupt();           // Enable interrupts globally
     temp_prod = CALADC12_15V_85C - CALADC12_15V_30C;
@@ -32,10 +36,30 @@ void InitializeCPU(void)
 
     temp_prod = (int32_t)CALADC12_25V_BATT_3V6 - CALADC12_25V_BATT_1V5;
     batt_coefficient = (int32_t)(36000 - 15000) / temp_prod;
+/*
+    FCTL3 = FWKEY;                            // Clear Lock bit
+
+    if (*Flash_ptr == 0xFF)
+    {
+        FCTL1 = FWKEY | WRT;                        // Set WRT bit for write operation
+        *Flash_ptr = 0x33;
+        *(Flash_ptr + 1) = 0xAA;
+    }
+
+    if (*Flash_ptr == 0x33)
+    {
+        FCTL1 = FWKEY | ERASE;                        // Set WRT bit for write operation
+        *Flash_ptr = 0x33;
+    }
+
+    FCTL1 = FWKEY;                            // Clear WRT bit
+    FCTL3 = FWKEY | LOCK;                     // Set LOCK bit
+*/
 }
 
 void InitializePins(void)
 {
+
     BUTTON_REN   = 0x0FF;    // all Pins of Port 1 input with a resistor
     BUTTON_OUT   = 0x0FF;    // all Pins of Port 1 with pull up
     BUTTON_IES   = BUTTON_1 | BUTTON_2 | BUTTON_3 | BUTTON_4 | BUTTON_5 | BUTTON_6; // buttonPins of Port1 Hi/Lo edge
@@ -49,6 +73,7 @@ void InitializePins(void)
     CONTROL_OUT |= AL1;
 
     VOLTMETER_SEL = U_BAT | U_TEMP | U_LIGTH;
+
 }
 
 void Initialize_UCS_and_Crystals(void)
@@ -105,10 +130,16 @@ bool InitializeXT2(bool osci_on)           // the 4MHz-crystal for the mainclock
 
 void InitializeRTC(void)            // Initialize the real time clock
 {
-RTCCTL1 = RTCSSEL_0 | RTCMODE_H | RTCBCD_H;
+    char *Flash_ptrA = (char *) 0x1980;             // Initialize Flash segment A ptr
+
+    RTCCTL1 = RTCSSEL_0 | RTCMODE_H | RTCBCD_H;
 // RTCCTL23 = RTCCALF_3; //PIN 2.6 toggels with 1Hz
-RTCSEC = 0x022; // starts on sec 22
-RTCMIN = 0x022; // starts on min 22
+    RTCSEC = 0x022; // starts on sec 22
+    RTCMIN = 0x022; // starts on min 22
+
+    if (*(Flash_ptrA + YEAR_L) != 0xFF) RTCYEARL = *(Flash_ptrA + YEAR_L);
+    if (*(Flash_ptrA + YEAR_H) != 0xFF) RTCYEARH = *(Flash_ptrA + YEAR_H);
+    if (*(Flash_ptrA + MOUNTS) != 0xFF) RTCMON   = *(Flash_ptrA + MOUNTS);
 }
 
 void InitializeTimerA(void)
@@ -384,6 +415,7 @@ void GenerateDispOut(void)
         disp_out[2] = RTCMIN >> 4;
         disp_out[1] = RTCHOUR & 0x0F;
         disp_out[0] = RTCHOUR >> 4;
+        if (RTCSEC & BIT0) disp_point |= SEC_PNT;
         break;
 /*    case view_temp_out:
         disp_out[3] = disp_hundred[1];
@@ -404,6 +436,7 @@ void GenerateDispOut(void)
         disp_out[2] = RTCDAY >> 4;
         disp_out[1] = RTCMON & 0x0F;
         disp_out[0] = RTCMON >> 4;
+        disp_point |= DIGT_PNT1 | DIGT_PNT3;
         break;
     case view_day_of_week:
         disp_out[3] = 0xF;
@@ -435,6 +468,12 @@ void GenerateDispOut(void)
         break;
     case view_bright:
         Int2str_m(adc_out_bright_f_disp, &disp_out);
+        break;
+    case view_rtc_corr:
+        disp_out[3] = RTCYEARL & 0x0F;
+        disp_out[2] = RTCYEARL >> 4;
+        disp_out[1] = RTCYEARH & 0x0F;
+        disp_out[0] = RTCYEARH >> 4;
         break;
     }
     *disp_out_int &= 0x0F0F;

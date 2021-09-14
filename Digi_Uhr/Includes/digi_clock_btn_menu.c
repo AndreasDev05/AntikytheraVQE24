@@ -116,15 +116,41 @@ void btn_to_event(void)
 /*
  * Button-events
  */
-void clock_event_to_menue(void)
+void clock_event_to_menu(uint8_t menu_stop_flag)
 {
     extern uint8_t btn_event[6];
     extern uint8_t alarm_start_flags;
+    extern uint8_t menu_stop_timer;
+    extern enum EVE_con_typ eve_condition;
+
+    static enum MENU_layer menu_layer = time_date;
+    static enum MENU_sub_layer menu_sub_layer = menu_sub_level_0;
+
+    if (menu_stop_flag == MENU_STOP_FLAG)
+    {
+        menu_layer = time_date;
+        menu_sub_layer = menu_sub_level_0;
+        eve_condition = normal;
+    }
+    else
+        menu_stop_timer = MENU_STOP_COUNT;
 
     if (btn_event[0])  // down
     {
         if (btn_event[0] & BTN_PRESS_SHORT)
         {
+            switch (menu_layer)
+            {
+            case time_date:
+                switch (menu_sub_layer)
+                {
+                case menu_sub_level_0:
+                    menu_layer = alarm_times;
+                    eve_condition = view_alarm_time1;
+                    break;
+                }
+                break;
+            }
             btn_event[0] &= ~BTN_PRESS_SHORT;
         }
         if (btn_event[0] & BTN_PRESS_LONG)
@@ -141,6 +167,27 @@ void clock_event_to_menue(void)
     {
         if (btn_event[1] & BTN_PRESS_SHORT)
         {
+            switch (menu_layer)
+            {
+            case time_date:
+                switch (menu_sub_layer)
+                {
+                case menu_sub_level_0:
+                    menu_layer = measured_data;
+                    eve_condition = view_temp_out;
+                    break;
+                }
+                break;
+                case alarm_times:
+                    switch (menu_sub_layer)
+                    {
+                    case menu_sub_level_0:
+                        menu_layer = time_date;
+                        eve_condition = normal;
+                        break;
+                    }
+                    break;
+            }
             btn_event[1] &= ~BTN_PRESS_SHORT;
         }
         if (btn_event[1] & BTN_PRESS_LONG)
@@ -157,6 +204,51 @@ void clock_event_to_menue(void)
     {
         if (btn_event[2] & BTN_PRESS_SHORT)
         {
+            switch (menu_layer)
+            {
+            case time_date:
+                switch (menu_sub_layer)
+                {
+                case menu_sub_level_0:
+                    menu_sub_layer = menu_sub_level_m1;
+                    eve_condition = view_sec_and_min;
+                    break;
+                case menu_sub_level_1:
+                    menu_sub_layer = menu_sub_level_0;
+                    eve_condition = normal;
+                    break;
+                case menu_sub_level_2:
+                    menu_sub_layer = menu_sub_level_1;
+                    eve_condition = view_day_of_week;
+                    break;
+                case menu_sub_level_3:
+                    menu_sub_layer = menu_sub_level_2;
+                    eve_condition = view_day_and_month;
+                    break;
+                }
+                break;
+                case measured_data:
+                    switch (menu_sub_layer)
+                    {
+                    case menu_sub_level_1:
+                        menu_sub_layer = menu_sub_level_0;
+                        eve_condition = view_temp_out;
+                        break;
+                    case menu_sub_level_2:
+                        menu_sub_layer = menu_sub_level_1;
+                        eve_condition = view_temp_cpu;
+                        break;
+                    case menu_sub_level_3:
+                        menu_sub_layer = menu_sub_level_2;
+                        eve_condition = view_batt;
+                        break;
+                    case menu_sub_level_4:
+                        menu_sub_layer = menu_sub_level_3;
+                        eve_condition = view_bright;
+                        break;
+                    }
+                 break;
+            }
             btn_event[2] &= ~BTN_PRESS_SHORT;
         }
         if (btn_event[2] & BTN_PRESS_LONG)
@@ -173,6 +265,51 @@ void clock_event_to_menue(void)
     {
         if (btn_event[3] & BTN_PRESS_SHORT)
         {
+            switch (menu_layer)
+            {
+            case time_date:
+                switch (menu_sub_layer)
+                {
+                case menu_sub_level_m1:
+                    menu_sub_layer = menu_sub_level_0;
+                    eve_condition = normal;
+                    break;
+                case menu_sub_level_0:
+                    menu_sub_layer = menu_sub_level_1;
+                    eve_condition = view_day_of_week;
+                    break;
+                case menu_sub_level_1:
+                    menu_sub_layer = menu_sub_level_2;
+                    eve_condition = view_day_and_month;
+                    break;
+                case menu_sub_level_2:
+                    menu_sub_layer = menu_sub_level_3;
+                    eve_condition = view_year;
+                    break;
+                }
+                break;
+                case measured_data:
+                    switch (menu_sub_layer)
+                    {
+                    case menu_sub_level_0:
+                        menu_sub_layer = menu_sub_level_1;
+                        eve_condition = view_temp_cpu;
+                        break;
+                    case menu_sub_level_1:
+                        menu_sub_layer = menu_sub_level_2;
+                        eve_condition = view_batt;
+                        break;
+                    case menu_sub_level_2:
+                        menu_sub_layer = menu_sub_level_3;
+                        eve_condition = view_bright;
+                        break;
+                    case menu_sub_level_3:
+                        menu_sub_layer = menu_sub_level_4;
+                        eve_condition = view_rtc_corr;
+                        break;
+                    }
+                    break;
+            }
             btn_event[3] &= ~BTN_PRESS_SHORT;
         }
         if (btn_event[3] & BTN_PRESS_LONG)
@@ -201,7 +338,7 @@ void clock_event_to_menue(void)
         }
     }
 // button 6 events
-    if (btn_event[5])
+    if (btn_event[5]) // alarm
     {
         if (btn_event[5] & BTN_PRESS_SHORT)
         {

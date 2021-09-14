@@ -52,6 +52,8 @@
     void const *btn_event_int_ptr = (uint16_t *)&btn_event[0]; // later used 16 bit integer values are used to accelerate the comparison.
     const uint8_t btn_adaptation[] = {BUTTON_1,BUTTON_2,BUTTON_3,BUTTON_4,BUTTON_5,BUTTON_6};
 
+    uint8_t menu_stop_timer = 0;
+
 // Variables for alarm-logic
     uint8_t     alarm_start_flags = 0;
     const uint8_t alarm_intv1[] = {1,1,9};  // Stepcounter, ON-Inv, OFF-Inv, ... in 0,1sec
@@ -63,19 +65,24 @@
                                    |      | Count of beeper OFF in 100msec
                                    |      Count of Bytes for the melodies (minus 1)
                                    Byte 1-3 Offset too melodies */
+    struct alarm_set alarm_data[5];
+    uint8_t alarm_order[5];
+
+// Variables for FlashWriting
+    enum FLASH_write_data flash_which_data;
 
 // Variables for ADC12
-volatile uint16_t adc_out_raw[8];
-uint16_t adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
+    volatile uint16_t adc_out_raw[8];
+    uint16_t adc_out_bright_contr, adc_out_bright_f_disp, adc_out_batt_f_contr,
         adc_out_batt_f_disp, adc_out_batt_f_disp_raw, adc_out_temp_cpu_f_disp_raw,
         adc_out_temp_out_f_disp_raw;
-int16_t adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
-volatile bool adc_conv_ready;
-uint8_t  adc_out_ready = 0; // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
-uint8_t  adc_power_count = 0; // if i switch on the power for the analog circuit
-uint16_t temp_s_sum;
-int32_t  temp_cpu_coefficient, temp_out_coefficient, batt_coefficient; // precalculated factor for CPU-temperature measurement
-int32_t  calcu_extension;
+    int16_t adc_out_temp_cpu_f_disp, adc_out_temp_out_f_disp;
+    volatile bool adc_conv_ready;
+    uint8_t  adc_out_ready = 0; // Bitarray that signalizes witch ADC-channel is ready - named bits in the header
+    uint8_t  adc_power_count = 0; // if i switch on the power for the analog circuit
+    uint16_t temp_s_sum;
+    int32_t  temp_cpu_coefficient, temp_out_coefficient, batt_coefficient; // precalculated factor for CPU-temperature measurement
+    int32_t  calcu_extension;
 
 /**
  * main.c
@@ -147,6 +154,11 @@ int main(void)
 
                         }
                     }
+                }
+                if (menu_stop_timer != 0)
+                {
+                    menu_stop_timer--;
+                    if (menu_stop_timer == 0) clock_event_to_menu(MENU_STOP_FLAG);
                 }
                 //                StartADCmeasurements(measurement_bright);
 //                CONTROL_OUT ^= AL1;
@@ -241,10 +253,13 @@ int main(void)
             if ((*(uint16_t *) btn_event_int_ptr)
                     || (*(uint16_t *) (btn_event_int_ptr + sizeof(uint16_t)))
                     || (*(uint16_t *) (btn_event_int_ptr + 2 * sizeof(uint16_t))))
-                clock_event_to_menue();
+            {
+                clock_event_to_menu(MENU_WHATEVER_FLAG);
+                GenerateDispOut();
+            }
             __no_operation();                         // For debugger
         }
-        else
+        else  // is_pwr_good
         {
             // batt. operated
         }

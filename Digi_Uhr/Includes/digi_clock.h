@@ -135,11 +135,17 @@ enum EVE_con_typ
     view_sec_and_min,
     view_day_and_month,
     view_day_of_week,
+    view_alarm_time1,
+    view_alarm_time2,
+    view_alarm_time3,
+    view_alarm_time4,
+    view_alarm_time5,
     view_year,
     view_temp_cpu,
     view_temp_out,
     view_bright,
     view_batt,
+    view_rtc_corr,
     change_sec,
     change_min,
     change_h,
@@ -154,7 +160,8 @@ enum EVE_con_typ
     change_a_thu,
     change_a_fri,
     change_a_san,
-    change_a_son
+    change_a_son,
+    change_rtc_corr
 } ene_con_gr;
 
 enum ADC_mesure_typ
@@ -180,8 +187,11 @@ enum ADC_Work
 
 enum FLASH_write_data
 {
+    write_ver,
     write_date,
     write_RTC_correction,
+    write_TEMP_correction,
+    write_BATT_correction,
     write_ALARM1,
     write_ALARM2,
     write_ALARM3,
@@ -206,6 +216,34 @@ enum FLASH_write_data
 
 #define     BEEPER_ON             CONTROL_OUT &= ~AL1
 #define     BEEPER_OFF            CONTROL_OUT |= AL1
+
+#define     MENU_STOP_COUNT       10    // in sec
+#define     MENU_WHATEVER_FLAG     0
+#define     MENU_STOP_FLAG         1
+
+struct alarm_set {
+    uint8_t alarm_days, alarm_min, alarm_hour, alarm_day, alarm_mounth;
+};
+
+enum MENU_layer
+{
+    time_date,
+    measured_data,
+    alarm_times,
+    set_clock,
+    set_alarm_clock,
+    set_sensor_offsets,
+};
+
+enum MENU_sub_layer
+{
+    menu_sub_level_m1 = -1,
+    menu_sub_level_0,
+    menu_sub_level_1,
+    menu_sub_level_2,
+    menu_sub_level_3,
+    menu_sub_level_4,
+};
 
 // FUNCTIONS
 /* Initialize CPU and basic variables */
@@ -265,18 +303,18 @@ void ADC_scheduler(enum ADC_Work ADC_work);
 #define     FLASH_DATA_VER  0
 
 #define     FLASH_VER       0
-#define     YEAR_LOW        1
-#define     YEAR_LOW        2
+#define     YEAR_H          1
+#define     YEAR_L          2
 #define     MOUNTS          3
 #define     FLASH_DAY       4
 #define     RTC_CORRETION   5
-#define     ALARM1_DAYS     6
-#define     ALARM1_MIN      7
-#define     ALARM1_HOUR     8
-#define     ALARM1_DAY      9
-#define     ALARM1_MOUNTH   10
-#define     ALARM2_DAYS     11
-#define     ALARM2_MIN      12
+#define     ALARM1_DAYS     7
+#define     ALARM1_MIN      8
+#define     ALARM1_HOUR     9
+#define     ALARM1_DAY      10
+#define     ALARM1_MOUNTH   11
+#define     ALARM2_DAYS     12
+#define     ALARM2_MIN      13
 #define     ALARM2_HOUR     14
 #define     ALARM2_DAY      15
 #define     ALARM2_MOUNTH   16
@@ -295,17 +333,21 @@ void ADC_scheduler(enum ADC_Work ADC_work);
 #define     ALARM5_HOUR     29
 #define     ALARM5_DAY      30
 #define     ALARM5_MOUNTH   31
+#define     TEMP_CORR_0     33
+#define     TEMP_CORR_80    35
+#define     BATT_CORR_1400  37
+#define     BATT_CORR_3600  39
 
 //      alarm_days_bits
 
-#define     A_MONDAY        Bit0
-#define     A_THUSDAY       Bit1
-#define     A_WEDNSDAY      Bit2
-#define     A_THURSDAY      Bit3
-#define     A_FRIDAY        Bit4
-#define     A_SATURDAY      Bit5
-#define     A_SUNDAY        Bit6
-#define     A_ACTIV         Bit7
+#define     A_MONDAY        BIT0
+#define     A_TUESDAY       BIT1
+#define     A_WEDNESDAY      BIT2
+#define     A_THURSDAY      BIT3
+#define     A_FRIDAY        BIT4
+#define     A_SATURDAY      BIT5
+#define     A_SUNDAY        BIT6
+#define     A_ACTIV         BIT7
 
 //      segment definition
 

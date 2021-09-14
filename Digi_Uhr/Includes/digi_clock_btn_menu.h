@@ -14,6 +14,6 @@
 
 void btn_to_event(void);
 
-void clock_event_to_menue(void);
+void clock_event_to_menu(uint8_t menu_stop_flag);
 
 #endif /* INCLUDES_DIGI_CLOCK_BTN_MENU_H_ */

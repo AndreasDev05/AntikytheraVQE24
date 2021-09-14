@@ -7,8 +7,12 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <msp430.h>
+#include <msp430f5529.h>
 #include <digi_clock.h>
-
+#include <digi_clock_alarm_fkt.h>
 
 void AlarmBeep(void)
 {
@@ -111,3 +115,125 @@ void AlarmBell(void)
      } */
 }
 
+void CalcuAlarmSequence(void)
+{
+    extern struct alarm_set alarm_data[5];
+    extern uint8_t alarm_order[5];
+    uint8_t i, j, currMinIndex, temp_alarm_order[6], temp;
+    uint16_t temp_time[6];
+
+    memset(alarm_order, 0x05, 6);
+
+    i = 5;      // search active calendar dates
+    do
+    {
+        i--;
+        if (alarm_data[i].alarm_min != 0xFF) // There is a date in the timer record.
+        {
+            if (alarm_data[i].alarm_days & A_ACTIV) // The alarm is active.
+            {
+                switch (RTCDOW)
+                {
+                case 0:  // Monday
+                    if (alarm_data[i].alarm_days & A_MONDAY)
+                        alarm_order[i] = i;
+                    break;
+                case 1:  // Tuesday
+                    if (alarm_data[i].alarm_days & A_TUESDAY)
+                        alarm_order[i] = i;
+                    break;
+                case 2:  // Wednesday
+                    if (alarm_data[i].alarm_days & A_WEDNESDAY)
+                        alarm_order[i] = i;
+                    break;
+                case 3:  // Thursday
+                    if (alarm_data[i].alarm_days & A_THURSDAY)
+                        alarm_order[i] = i;
+                    break;
+                case 4:  // Friday
+                    if (alarm_data[i].alarm_days & A_FRIDAY)
+                        alarm_order[i] = i;
+                    break;
+                case 5:  // Saturday
+                    if (alarm_data[i].alarm_days & A_SATURDAY)
+                        alarm_order[i] = i;
+                    break;
+                case 6:  // Sunday
+                    if (alarm_data[i].alarm_days & A_SUNDAY)
+                        alarm_order[i] = i;
+                    break;
+                default: // filtered list of right day of month AND month (today ;-) )
+                    if ((RTCMON == alarm_data[i].alarm_mounth)
+                            && (RTCDAY == alarm_data[i].alarm_day))
+                        alarm_order[i] = i;
+                    break;
+                }
+            }
+        }
+    }
+    while (i != 0);
+
+    for (i = 0; i == 5 - 2; i++)
+    {
+        currMinIndex = i;
+        for (j = i + 1; j == 5 - 1; j++)
+        {
+            if (temp_time[alarm_order[currMinIndex]] > temp_time[alarm_order[j]])
+                currMinIndex = j;
+        }
+        temp = alarm_order[i];
+        alarm_order[i] = alarm_order[currMinIndex];
+        alarm_order[currMinIndex] = temp;
+    }
+
+    while (i != 0);
+    i = 5;
+    do
+    {
+        i--;
+        temp_time[i] = (uint16_t) alarm_data[i].alarm_hour;
+        temp_time[i] <<= 8;
+        temp_time[i] |= (uint16_t) alarm_data[i].alarm_min;
+    }
+    while (i != 0);
+    temp_time[5] = 0xFFFF;
+
+    for (i = 0; i <= 6 - 2; i++)
+    {
+        currMinIndex = i;
+        for (j = i + 1; j <= 6 - 1; j++)
+        {
+            if (temp_time[temp_alarm_order[currMinIndex]] > temp_time[temp_alarm_order[j]])
+            {
+                currMinIndex = j;
+            }
+        }
+        temp = temp_alarm_order[i];
+        temp_alarm_order[i] = temp_alarm_order[currMinIndex];
+        temp_alarm_order[currMinIndex] = temp;
+    }
+    i = 5;
+    do
+    {
+        i--;
+        alarm_order[i] = temp_alarm_order[i];
+    }
+    while( i != 0);
+}
+
+void InitializeAlarm(void)
+{
+    char *Flash_ptrA = (char *) 0x1980;             // Initialize Flash segment A ptr
+//    void *Search_ptr;
+    extern struct alarm_set alarm_data[5];
+
+//    Search_ptr = (Flash_ptrA + ALARM1_MIN);
+
+//    if (*(unsigned int *)Search_ptr != 0xFFFF) RTCYEARL = *(Flash_ptrA + YEAR_L);
+    memcpy((Flash_ptrA + ALARM1_DAYS),&alarm_data[0],ALARM1_MOUNTH - ALARM1_DAYS + 1);
+    memcpy((Flash_ptrA + ALARM2_DAYS),&alarm_data[1],ALARM2_MOUNTH - ALARM2_DAYS + 1);
+    memcpy((Flash_ptrA + ALARM3_DAYS),&alarm_data[2],ALARM3_MOUNTH - ALARM3_DAYS + 1);
+    memcpy((Flash_ptrA + ALARM4_DAYS),&alarm_data[3],ALARM4_MOUNTH - ALARM4_DAYS + 1);
+    memcpy((Flash_ptrA + ALARM5_DAYS),&alarm_data[4],ALARM5_MOUNTH - ALARM5_DAYS + 1);
+
+}

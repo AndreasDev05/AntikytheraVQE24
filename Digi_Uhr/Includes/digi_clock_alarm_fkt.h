@@ -10,5 +10,7 @@
 
 void AlarmBeep(void);
 void AlarmBell(void);
+void CalcuAlarmSequence(void);
+void InitializeAlarm(void);
 
 #endif /* INCLUDES_DIGI_CLOCK_ALARM_FKT_H_ */
